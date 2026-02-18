@@ -38,18 +38,15 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         #modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 200;
             display: none; flex-direction: column; padding: 20px; overflow-y: auto;
         }
 
         .edit-tag-item {
             display: inline-flex; align-items: center; gap: 8px;
-            background: #222; padding: 6px 14px; border-radius: 12px;
-            font-size: 12px; font-weight: 600; margin: 4px; border: 1px solid rgba(255,255,255,0.05);
+            background: #222; padding: 8px 14px; border-radius: 12px;
+            font-size: 13px; font-weight: 600; margin: 4px; border: 1px solid rgba(255,255,255,0.1);
         }
-        
-        /* 統計切換按鈕樣式 */
-        .stat-toggle-btn.active { background: #fff; color: #000; }
     </style>
 </head>
 <body class="pb-32">
@@ -62,58 +59,50 @@
     <div id="modal-overlay">
         <div class="max-w-md mx-auto w-full space-y-10 py-10">
             <div class="flex justify-between items-center">
-                <h2 class="wide-title text-sm">管理標籤</h2>
-                <button onclick="closeModal()" class="bg-white/10 px-5 py-2 rounded-full text-[10px] font-bold">DONE</button>
+                <h2 class="wide-title text-sm">標籤設定</h2>
+                <button onclick="closeModal()" class="bg-white text-black px-6 py-2 rounded-full text-[10px] font-bold uppercase">完成</button>
             </div>
 
             <div class="space-y-6">
-                <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">Target 對象管理</p>
+                <p class="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">對象 (Target)</p>
                 <div class="flex gap-2">
-                    <input type="text" id="add-target-input" placeholder="輸入名稱..." class="flex-1 dark-input px-4 py-4 text-xs">
-                    <button onclick="quickAddTag('T')" class="bg-white text-black px-6 rounded-xl text-[10px] font-black uppercase">Add</button>
+                    <input type="text" id="add-target-input" placeholder="例如：自己" class="flex-1 dark-input px-4 py-4 text-xs">
+                    <button onclick="quickAddTag('T')" class="bg-zinc-800 text-white px-6 rounded-xl text-[10px] font-black uppercase border border-white/10">新增</button>
                 </div>
-                <div id="edit-targets-list" class="flex flex-wrap pt-2"></div>
+                <div id="edit-targets-list" class="flex flex-wrap"></div>
             </div>
 
             <div class="space-y-6">
-                <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">Category 類別管理</p>
+                <p class="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">類別 (Category)</p>
                 <div class="flex gap-2">
-                    <input type="text" id="add-cat-input" placeholder="輸入名稱..." class="flex-1 dark-input px-4 py-4 text-xs">
-                    <button onclick="quickAddTag('C')" class="bg-white text-black px-6 rounded-xl text-[10px] font-black uppercase">Add</button>
+                    <input type="text" id="add-cat-input" placeholder="例如：零食" class="flex-1 dark-input px-4 py-4 text-xs">
+                    <button onclick="quickAddTag('C')" class="bg-zinc-800 text-white px-6 rounded-xl text-[10px] font-black uppercase border border-white/10">新增</button>
                 </div>
-                <div id="edit-cats-list" class="flex flex-wrap pt-2"></div>
+                <div id="edit-cats-list" class="flex flex-wrap"></div>
             </div>
             
-            <div class="pt-10 opacity-20 text-center">
-                <p class="text-[9px] font-bold">點擊 ✕ 刪除標籤</p>
-            </div>
+            <p class="text-center text-[10px] text-white/10 pt-10">點擊標籤旁的 ✕ 即可移除</p>
         </div>
     </div>
 
-    <!-- 主選單 -->
+    <!-- 導覽列 -->
     <nav class="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5 p-6">
         <div class="max-w-xl mx-auto">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-lg wide-title">My購了沒(˶˙๏˙˶)b</h1>
                 <div class="flex gap-2">
-                    <button onclick="openModal()" class="p-2 opacity-30 active:opacity-100">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <button onclick="openModal()" class="p-2 opacity-50 active:opacity-100 transition-opacity">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     </button>
-                    <button onclick="cloudSync()" class="p-2 opacity-30 active:opacity-100">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a3.5 3.5 0 0 0 0-7h-1.5a7 7 0 1 0-11.8 4.5"/><path d="M12 13v9"/><path d="m9 16 3-3 3 3"/></svg>
+                    <button onclick="cloudSync()" class="p-2 opacity-50 active:opacity-100 transition-opacity">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a3.5 3.5 0 0 0 0-7h-1.5a7 7 0 1 0-11.8 4.5"/><path d="M12 13v9"/><path d="m9 16 3-3 3 3"/></svg>
                     </button>
                 </div>
             </div>
-            <div id="ex-rate" class="text-[9px] text-white/20 font-mono tracking-tighter mb-4">Rates: Loading...</div>
+            <div id="ex-rate" class="text-[9px] text-white/20 font-mono tracking-tighter mb-4">Rates: Local Cache</div>
             <div class="flex gap-10">
-                <div>
-                    <p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1">Spent 已花費</p>
-                    <p class="text-2xl font-black" id="total-spent">$0</p>
-                </div>
-                <div>
-                    <p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1 text-zinc-600">Budget 待購</p>
-                    <p class="text-2xl font-black text-zinc-800" id="total-budget">$0</p>
-                </div>
+                <div><p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1">已花費</p><p class="text-2xl font-black" id="total-spent">$0</p></div>
+                <div><p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1 text-zinc-600">待購中</p><p class="text-2xl font-black text-white/20" id="total-budget">$0</p></div>
             </div>
         </div>
     </nav>
@@ -121,37 +110,28 @@
     <main class="max-w-xl mx-auto px-6 mt-8">
         <div id="view-list" class="space-y-8">
             <section class="space-y-5">
-                <div>
-                    <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-2">Target 對象</p>
-                    <div id="ui-targets" class="tag-scroll"></div>
-                </div>
-                <div>
-                    <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-2">Category 類別</p>
-                    <div id="ui-categories" class="tag-scroll"></div>
-                </div>
+                <div><p class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-2">對象 Target</p><div id="ui-targets" class="tag-scroll"></div></div>
+                <div><p class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-2">類別 Category</p><div id="ui-categories" class="tag-scroll"></div></div>
                 
                 <div class="flex gap-2">
-                    <select id="in-curr" class="dark-input px-3 py-4 text-[10px] font-bold">
-                        <option value="TWD">TWD</option><option value="KRW">KRW</option><option value="JPY">JPY</option><option value="USD">USD</option>
-                    </select>
+                    <select id="in-curr" class="dark-input px-3 py-4 text-[10px] font-bold"><option value="TWD">TWD</option><option value="KRW">KRW</option><option value="JPY">JPY</option><option value="USD">USD</option></select>
                     <input type="text" id="in-name" placeholder="想買什麼？" class="flex-1 dark-input px-5 py-4 text-sm font-bold">
                     <input type="number" id="in-price" placeholder="價格" class="w-24 dark-input px-5 py-4 text-sm font-black">
                 </div>
                 
                 <div class="flex gap-2">
-                    <div onclick="document.getElementById('in-file').click()" id="ui-img-label" class="flex-1 bg-white/5 border border-dashed border-white/10 rounded-2xl flex items-center justify-center h-14 cursor-pointer text-[9px] text-white/20 font-bold uppercase">加入照片</div>
-                    <button id="add-btn" onclick="handleAdd()" class="bg-white text-black px-10 rounded-2xl font-black text-[10px] uppercase active:scale-95">Add</button>
+                    <div onclick="document.getElementById('in-file').click()" id="ui-img-label" class="flex-1 bg-white/5 border border-dashed border-white/10 rounded-2xl flex items-center justify-center h-14 cursor-pointer text-[9px] text-white/20 font-bold">加入照片</div>
+                    <button id="add-btn" onclick="handleAdd()" class="bg-white text-black px-10 rounded-2xl font-black text-[10px] uppercase">新增</button>
                 </div>
                 <input type="file" id="in-file" class="hidden" accept="image/*">
             </section>
-
-            <div id="item-list" class="space-y-4"></div>
+            <div id="item-list" class="space-y-4 pb-10"></div>
         </div>
 
         <div id="view-stats" class="hidden py-4 space-y-8">
             <div class="flex bg-zinc-900/50 p-1 rounded-full border border-white/5 max-w-[200px] mx-auto">
-                <button id="toggle-cat" onclick="setStatType('category')" class="stat-toggle-btn flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all duration-300 active">類別</button>
-                <button id="toggle-tar" onclick="setStatType('target')" class="stat-toggle-btn flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all duration-300">對象</button>
+                <button id="toggle-cat" onclick="setStatType('category')" class="flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all bg-white text-black">類別</button>
+                <button id="toggle-tar" onclick="setStatType('target')" class="flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all text-white/40">對象</button>
             </div>
             <div class="relative w-64 h-64 mx-auto">
                 <canvas id="stat-chart"></canvas>
@@ -164,258 +144,91 @@
         </div>
     </main>
 
-    <!-- 底部導覽 -->
     <div class="fixed bottom-8 inset-x-0 flex justify-center z-50">
         <div class="bg-zinc-900/90 backdrop-blur-2xl px-12 py-4 rounded-full border border-white/10 flex gap-20 shadow-2xl">
-            <button onclick="setTab('list')" id="nav-list" class="nav-btn active flex flex-col items-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                <div class="nav-indicator"></div>
-            </button>
-            <button onclick="setTab('stats')" id="nav-stats" class="nav-btn flex flex-col items-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="9"/></svg>
-                <div class="nav-indicator"></div>
-            </button>
+            <button onclick="setTab('list')" id="nav-list" class="nav-btn active flex flex-col items-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="2"/></svg><div class="nav-indicator"></div></button>
+            <button onclick="setTab('stats')" id="nav-stats" class="nav-btn flex flex-col items-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="9"/></svg><div class="nav-indicator"></div></button>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        /**
-         * 重要：如果你上傳到 GitHub，請將下方的 firebaseConfig 替換成你的 Firebase 專案配置。
-         * 你可以在 Firebase Console > 專案設定 > 你的應用程式 中找到這些資訊。
-         */
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "", // 這裡貼上你的 API Key
-            authDomain: "", 
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: ""
-        };
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-shopping-app-id';
-
-        let app, auth, db;
-        
-        // 狀態管理
+        // --- 初始化狀態 (不論 Firebase 是否成功都可用) ---
         let s = { 
             items: JSON.parse(localStorage.getItem('my_items')) || [], 
             targets: JSON.parse(localStorage.getItem('my_targets')) || ["自己", "家人", "朋友"], 
             cats: JSON.parse(localStorage.getItem('my_cats')) || ["藥妝", "零食", "精品"], 
-            selT: "", 
-            selC: "", 
+            selT: "", selC: "", 
             rates: JSON.parse(localStorage.getItem('my_rates')) || { KRW: 41, JPY: 4.6, USD: 0.03 }, 
-            img: null, chart: null, user: null,
-            statType: 'category'
+            img: null, chart: null, user: null, statType: 'category'
         };
+        s.selT = s.targets[0]; s.selC = s.cats[0];
 
-        // 初始化預設選擇
-        s.selT = s.targets[0];
-        s.selC = s.cats[0];
-
-        window.onload = () => {
-            renderTagsUI();
-            renderListUI();
-            fetchRates();
-            
-            // 如果有配置 Firebase 則初始化
-            if (firebaseConfig.apiKey) {
-                initFirebase();
-            } else {
-                console.warn("Firebase 未配置，將僅使用本地儲存。");
-            }
-        };
-
-        async function initFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        s.user = user;
-                        silentSync();
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                });
-            } catch (e) {
-                console.error("Firebase init failed", e);
-            }
-        }
-
-        async function silentSync() {
-            if (!db) return;
-            try {
-                // 同步項目
-                const itemCol = collection(db, 'artifacts', appId, 'public', 'data', 'items');
-                const snap = await getDocs(itemCol);
-                if (!snap.empty) {
-                    s.items = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
-                    saveLocal(); renderListUI();
-                }
-                
-                // 同步標籤設定
-                const setRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings');
-                const setSnap = await getDoc(setRef);
-                if(setSnap.exists()) {
-                    const data = setSnap.data();
-                    if(data.targets) s.targets = data.targets;
-                    if(data.categories) s.cats = data.categories;
-                    saveLocal(); renderTagsUI();
-                }
-            } catch(e) { console.error("Sync failed", e); }
-        }
-
-        window.cloudSync = async () => {
-            if(!s.user) {
-                alert("雲端功能未配置或未登入");
-                return;
-            }
-            const overlay = document.getElementById('loading-overlay');
-            overlay.style.display = 'flex';
-            await silentSync();
-            setTimeout(() => { overlay.style.display = 'none'; }, 500);
-        };
-
-        function saveLocal() {
-            localStorage.setItem('my_items', JSON.stringify(s.items));
-            localStorage.setItem('my_targets', JSON.stringify(s.targets));
-            localStorage.setItem('my_cats', JSON.stringify(s.cats));
-        }
-
-        // --- 標籤管理邏輯 ---
+        // --- 全域按鈕事件 ---
         window.openModal = () => {
             renderEditModalLists();
             document.getElementById('modal-overlay').style.display = 'flex';
         };
-
-        window.closeModal = () => {
-            document.getElementById('modal-overlay').style.display = 'none';
-        };
-
-        function renderEditModalLists() {
-            const tList = document.getElementById('edit-targets-list');
-            const cList = document.getElementById('edit-cats-list');
-            
-            tList.innerHTML = s.targets.map(t => `
-                <div class="edit-tag-item">
-                    ${t} <span onclick="removeTag('T','${t}')" class="ml-2 opacity-30 hover:opacity-100 cursor-pointer">✕</span>
-                </div>
-            `).join('');
-            
-            cList.innerHTML = s.cats.map(c => `
-                <div class="edit-tag-item">
-                    ${c} <span onclick="removeTag('C','${c}')" class="ml-2 opacity-30 hover:opacity-100 cursor-pointer">✕</span>
-                </div>
-            `).join('');
-        }
-
+        window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
+        
         window.quickAddTag = (type) => {
-            const inputId = type === 'T' ? 'add-target-input' : 'add-cat-input';
-            const input = document.getElementById(inputId);
+            const input = document.getElementById(type === 'T' ? 'add-target-input' : 'add-cat-input');
             const val = input.value.trim();
             if(!val) return;
-            
             if(type === 'T' && !s.targets.includes(val)) s.targets.push(val);
             if(type === 'C' && !s.cats.includes(val)) s.cats.push(val);
-            
             input.value = '';
-            saveLocal();
-            renderEditModalLists();
-            renderTagsUI();
-            syncSettingsToCloud();
+            saveLocal(); renderEditModalLists(); renderTagsUI();
+            if(window.dbInstance) syncSettingsToCloud();
         };
 
         window.removeTag = (type, val) => {
             if(type === 'T') s.targets = s.targets.filter(x => x !== val);
             if(type === 'C') s.cats = s.cats.filter(x => x !== val);
-            
             if(s.targets.length === 0) s.targets = ["未分類"];
             if(s.cats.length === 0) s.cats = ["未分類"];
-            
-            if(s.selT === val) s.selT = s.targets[0];
-            if(s.selC === val) s.selC = s.cats[0];
-
-            saveLocal();
-            renderEditModalLists();
-            renderTagsUI();
-            syncSettingsToCloud();
+            saveLocal(); renderEditModalLists(); renderTagsUI();
+            if(window.dbInstance) syncSettingsToCloud();
         };
 
-        function syncSettingsToCloud() {
-            if(s.user && db) {
-                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings'), { 
-                    targets: s.targets, 
-                    categories: s.cats 
-                }, { merge: true });
-            }
+        function renderEditModalLists() {
+            document.getElementById('edit-targets-list').innerHTML = s.targets.map(t => `<div class="edit-tag-item">${t}<span onclick="removeTag('T','${t}')" class="ml-2 opacity-30">✕</span></div>`).join('');
+            document.getElementById('edit-cats-list').innerHTML = s.cats.map(c => `<div class="edit-tag-item">${c}<span onclick="removeTag('C','${c}')" class="ml-2 opacity-30">✕</span></div>`).join('');
         }
 
         window.renderTagsUI = () => {
-            // 確保目前的選擇在標籤內
             if(!s.targets.includes(s.selT)) s.selT = s.targets[0];
             if(!s.cats.includes(s.selC)) s.selC = s.cats[0];
-
             document.getElementById('ui-targets').innerHTML = s.targets.map(t => `<button onclick="selectTag('T','${t}')" class="tag-btn ${s.selT === t ? 'active' : ''}">${t}</button>`).join('');
             document.getElementById('ui-categories').innerHTML = s.cats.map(c => `<button onclick="selectTag('C','${c}')" class="tag-btn ${s.selC === c ? 'active' : ''}">${c}</button>`).join('');
         };
 
-        window.selectTag = (type, val) => {
-            if (type === 'T') s.selT = val; else s.selC = val;
-            renderTagsUI();
-        };
+        window.selectTag = (type, val) => { if(type === 'T') s.selT = val; else s.selC = val; renderTagsUI(); };
 
-        // --- 記帳邏輯 ---
-        window.handleAdd = async () => {
-            const btn = document.getElementById('add-btn');
-            const nameEl = document.getElementById('in-name');
-            const priceEl = document.getElementById('in-price');
-            const name = nameEl.value.trim();
-            const price = parseFloat(priceEl.value) || 0;
-            const curr = document.getElementById('in-curr').value;
-
+        window.handleAdd = () => {
+            const nameEl = document.getElementById('in-name'), priceEl = document.getElementById('in-price');
+            const name = nameEl.value.trim(), price = parseFloat(priceEl.value) || 0, curr = document.getElementById('in-curr').value;
             if(!name) return;
-            btn.disabled = true;
-
             const twd = curr === 'TWD' ? price : (price / (s.rates[curr] || 1));
-            const newId = "it_" + Date.now();
-            const newItem = {
-                id: newId, name, price, currency: curr, target: s.selT, category: s.selC,
-                priceInTWD: twd, image: s.img, bought: false, createdAt: Date.now()
-            };
-
+            const newItem = { id: "it_"+Date.now(), name, price, currency: curr, target: s.selT, category: s.selC, priceInTWD: twd, image: s.img, bought: false, createdAt: Date.now() };
             s.items.unshift(newItem);
             saveLocal(); renderListUI();
-            nameEl.value = ''; priceEl.value = ''; s.img = null;
-            document.getElementById('ui-img-label').innerText = '加入照片';
-            btn.disabled = false;
-            
-            if(s.user && db) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', newId), newItem);
+            nameEl.value = ''; priceEl.value = ''; s.img = null; document.getElementById('ui-img-label').innerText = '加入照片';
+            if(window.dbInstance) {
+                const { doc, setDoc } = window.firebaseFirestore;
+                setDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items', newItem.id), newItem);
+            }
         };
 
         window.renderListUI = () => {
-            const list = document.getElementById('item-list');
-            let sTotal = 0, bTotal = 0;
-            const sorted = [...s.items].sort((a,b) => (a.bought ? 1 : -1));
-            
-            list.innerHTML = sorted.map(i => {
-                const twd = i.priceInTWD || 0;
-                if(i.bought) sTotal += twd; else bTotal += twd;
-                return `
-                <div class="item-card bg-zinc-900/40 border border-white/5 p-4 rounded-3xl flex items-center gap-4 ${i.bought ? 'opacity-20' : ''}">
+            let sT = 0, bT = 0;
+            const html = [...s.items].sort((a,b) => a.bought ? 1 : -1).map(i => {
+                if(i.bought) sT += i.priceInTWD; else bT += i.priceInTWD;
+                return `<div class="item-card bg-zinc-900/40 border border-white/5 p-4 rounded-3xl flex items-center gap-4 ${i.bought ? 'opacity-20' : ''}">
                     <div class="w-14 h-14 bg-white/5 rounded-2xl overflow-hidden flex items-center justify-center shrink-0">
                         ${i.image ? `<img src="${i.image}" class="w-full h-full object-cover">` : '<span class="text-[8px] opacity-10 font-bold">N/A</span>'}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex gap-1.5 mb-1.5">
-                            <span class="text-[7px] font-bold bg-white/10 px-1.5 py-0.5 rounded text-white/50">${i.target}</span>
-                            <span class="text-[7px] font-bold bg-white/5 px-1.5 py-0.5 rounded text-white/30">${i.category}</span>
-                        </div>
+                        <div class="flex gap-1.5 mb-1.5"><span class="text-[7px] font-bold bg-white/10 px-1.5 py-0.5 rounded text-white/50">${i.target}</span><span class="text-[7px] font-bold bg-white/5 px-1.5 py-0.5 rounded text-white/30">${i.category}</span></div>
                         <div class="text-sm font-bold truncate">${i.name}</div>
                         <div class="text-[10px] font-mono opacity-20">${i.currency} ${i.price.toLocaleString()}</div>
                     </div>
@@ -425,29 +238,35 @@
                     </div>
                 </div>`;
             }).join('');
-            
-            document.getElementById('total-spent').innerText = `$${Math.round(sTotal).toLocaleString()}`;
-            document.getElementById('total-budget').innerText = `$${Math.round(bTotal).toLocaleString()}`;
-            if(document.getElementById('center-total')) document.getElementById('center-total').innerText = `$${Math.round(sTotal).toLocaleString()}`;
+            document.getElementById('item-list').innerHTML = html;
+            document.getElementById('total-spent').innerText = `$${Math.round(sT).toLocaleString()}`;
+            document.getElementById('total-budget').innerText = `$${Math.round(bT).toLocaleString()}`;
         };
 
         window.doToggle = (id, b) => {
-            const it = s.items.find(x => x.id === id);
-            if(it) {
-                it.bought = !b;
-                saveLocal(); renderListUI();
-                if(s.user && db) updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id), { bought: !b });
+            const it = s.items.find(x => x.id === id); if(!it) return;
+            it.bought = !b; saveLocal(); renderListUI();
+            if(window.dbInstance) {
+                const { doc, updateDoc } = window.firebaseFirestore;
+                updateDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items', id), { bought: !b });
             }
         };
-        
         window.doDel = (id) => {
-            if(!confirm("確定刪除此品項？")) return;
-            s.items = s.items.filter(x => x.id !== id);
-            saveLocal(); renderListUI();
-            if(s.user && db) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id));
+            if(!confirm("確定刪除？")) return;
+            s.items = s.items.filter(x => x.id !== id); saveLocal(); renderListUI();
+            if(window.dbInstance) {
+                const { doc, deleteDoc } = window.firebaseFirestore;
+                deleteDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items', id));
+            }
         };
 
-        // --- 頁面與統計邏輯 ---
+        function saveLocal() {
+            localStorage.setItem('my_items', JSON.stringify(s.items));
+            localStorage.setItem('my_targets', JSON.stringify(s.targets));
+            localStorage.setItem('my_cats', JSON.stringify(s.cats));
+        }
+
+        // --- 頁面與統計 ---
         window.setTab = (t) => {
             document.getElementById('view-list').classList.toggle('hidden', t !== 'list');
             document.getElementById('view-stats').classList.toggle('hidden', t !== 'stats');
@@ -458,93 +277,113 @@
 
         window.setStatType = (type) => {
             s.statType = type;
-            document.querySelectorAll('.stat-toggle-btn').forEach(btn => btn.classList.remove('active'));
-            if(type === 'category') document.getElementById('toggle-cat').classList.add('active');
-            else document.getElementById('toggle-tar').classList.add('active');
+            document.getElementById('toggle-cat').className = `flex-1 py-2 rounded-full text-[10px] font-black transition-all ${type==='category'?'bg-white text-black':'text-white/40'}`;
+            document.getElementById('toggle-tar').className = `flex-1 py-2 rounded-full text-[10px] font-black transition-all ${type==='target'?'bg-white text-black':'text-white/40'}`;
             renderChart();
         };
 
         function renderChart() {
-            const key = s.statType;
-            const dataMap = {};
-            let grandTotal = 0;
+            const dataMap = {}; let total = 0;
             s.items.filter(i => i.bought).forEach(i => {
-                const label = i[key] || "未分類";
-                const amt = i.priceInTWD || 0;
-                dataMap[label] = (dataMap[label] || 0) + amt;
-                grandTotal += amt;
+                const l = i[s.statType] || "未分類";
+                dataMap[l] = (dataMap[l] || 0) + i.priceInTWD;
+                total += i.priceInTWD;
             });
-            const labels = Object.keys(dataMap);
-            const values = Object.values(dataMap);
-            
+            const labels = Object.keys(dataMap), values = Object.values(dataMap);
             document.getElementById('stat-list').innerHTML = labels.map((l, i) => {
-                const perc = grandTotal > 0 ? (values[i] / grandTotal * 100).toFixed(0) : 0;
-                return `
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-end">
-                            <div>
-                                <span class="text-[9px] font-bold text-white/20 uppercase tracking-widest">${l}</span>
-                                <div class="text-xs font-black">$${Math.round(values[i]).toLocaleString()}</div>
-                            </div>
-                            <span class="text-[10px] font-mono text-white/40">${perc}%</span>
-                        </div>
-                        <div class="h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
-                            <div class="h-full bg-white transition-all duration-1000" style="width: ${perc}%"></div>
-                        </div>
-                    </div>`;
+                const p = total > 0 ? (values[i]/total*100).toFixed(0) : 0;
+                return `<div class="space-y-2">
+                    <div class="flex justify-between items-end"><div><span class="text-[9px] font-bold text-white/20 uppercase tracking-widest">${l}</span><div class="text-xs font-black">$${Math.round(values[i]).toLocaleString()}</div></div><span class="text-[10px] text-white/40">${p}%</span></div>
+                    <div class="h-[2px] w-full bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-white transition-all duration-700" style="width:${p}%"></div></div>
+                </div>`;
             }).join('');
-            
             if(s.chart) s.chart.destroy();
             s.chart = new Chart(document.getElementById('stat-chart'), {
-                type: 'doughnut',
-                data: { 
-                    labels: labels, 
-                    datasets: [{ 
-                        data: values, 
-                        backgroundColor: ['#FFFFFF', '#A1A1AA', '#52525B', '#27272A', '#18181B'], 
-                        borderWidth: 0 
-                    }] 
-                },
-                options: { 
-                    cutout: '85%', 
-                    plugins: { legend: { display: false } },
-                    animation: { duration: 800 }
-                }
+                type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor: ['#FFF', '#AAA', '#666', '#333'], borderWidth: 0 }] },
+                options: { cutout: '85%', plugins: { legend: { display: false } } }
             });
-            document.getElementById('center-total').innerText = `$${Math.round(grandTotal).toLocaleString()}`;
+            document.getElementById('center-total').innerText = `$${Math.round(total).toLocaleString()}`;
         }
 
-        // --- 圖片處理與匯率 ---
-        document.getElementById('in-file').onchange = (e) => {
-            const f = e.target.files[0];
-            if(!f) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                const img = new Image(); img.src = ev.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const max = 200; let w = img.width, h = img.height;
-                    if (w > max) { h = h * (max / w); w = max; }
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    s.img = canvas.toDataURL('image/jpeg', 0.5);
-                    document.getElementById('ui-img-label').innerText = 'PHOTO READY';
-                }
-            };
-            reader.readAsDataURL(f);
-        };
-
+        // --- 匯率與圖片 ---
         async function fetchRates() {
             try {
                 const r = await fetch('https://open.er-api.com/v6/latest/TWD');
-                const d = await r.json();
-                s.rates = d.rates;
+                const d = await r.json(); s.rates = d.rates;
                 localStorage.setItem('my_rates', JSON.stringify(d.rates));
                 document.getElementById('ex-rate').innerText = `1 TWD ≈ JPY ${d.rates.JPY.toFixed(1)} / KRW ${d.rates.KRW.toFixed(0)}`;
-            } catch(e) {
-                document.getElementById('ex-rate').innerText = "Rates: Offline Mode";
-            }
+            } catch(e) { document.getElementById('ex-rate').innerText = "Rates: Offline Mode"; }
         }
+        document.getElementById('in-file').onchange = (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            const r = new FileReader();
+            r.onload = (ev) => {
+                const img = new Image(); img.src = ev.target.result;
+                img.onload = () => {
+                    const c = document.createElement('canvas'); const m = 200; let w = img.width, h = img.height;
+                    if(w>m) { h=h*(m/w); w=m; } c.width=w; c.height=h;
+                    c.getContext('2d').drawImage(img,0,0,w,h);
+                    s.img = c.toDataURL('image/jpeg', 0.5); document.getElementById('ui-img-label').innerText = 'PHOTO READY';
+                }
+            };
+            r.readAsDataURL(f);
+        };
+
+        // --- Firebase 安全加載 ---
+        async function loadFirebase() {
+            try {
+                const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+                const { getAuth, signInAnonymously, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+                const firestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                const { getFirestore, doc, collection, getDocs, getDoc } = firestore;
+
+                const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+                const config = JSON.parse(configStr);
+                if(!config.apiKey) return;
+
+                window.appId = typeof __app_id !== 'undefined' ? __app_id : 'myshop-01';
+                window.firebaseFirestore = firestore;
+                const app = initializeApp(config);
+                const auth = getAuth(app);
+                window.dbInstance = getFirestore(app);
+
+                onAuthStateChanged(auth, async (u) => {
+                    if(u) {
+                        s.user = u;
+                        // 靜默同步
+                        const itemSnap = await getDocs(collection(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items'));
+                        if(!itemSnap.empty) {
+                            s.items = itemSnap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=>b.createdAt - a.createdAt);
+                            saveLocal(); renderListUI();
+                        }
+                        const setSnap = await getDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'settings'));
+                        if(setSnap.exists()) {
+                            const d = setSnap.data();
+                            if(d.targets) s.targets = d.targets;
+                            if(d.categories) s.cats = d.categories;
+                            saveLocal(); renderTagsUI();
+                        }
+                    } else { await signInAnonymously(auth); }
+                });
+            } catch(e) { console.log("Cloud features disabled."); }
+        }
+
+        function syncSettingsToCloud() {
+            const { doc, setDoc } = window.firebaseFirestore;
+            setDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'settings'), { targets: s.targets, categories: s.cats }, { merge: true });
+        }
+
+        window.cloudSync = () => {
+            if(!window.dbInstance) return alert("Firebase Config Missing.");
+            document.getElementById('loading-overlay').style.display='flex';
+            loadFirebase().then(() => setTimeout(()=>document.getElementById('loading-overlay').style.display='none', 800));
+        };
+
+        // 啟動 UI
+        renderTagsUI();
+        renderListUI();
+        fetchRates();
+        loadFirebase();
     </script>
 </body>
 </html>
