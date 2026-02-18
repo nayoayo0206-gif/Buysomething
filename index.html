@@ -1,392 +1,346 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, query, addDoc } from 'firebase/firestore';
-import { Settings, BarChart2, List, Trash2, Edit2, Share2, X, Camera, CheckCircle2, Circle, AlertCircle, Tag, Users, Plus, Check } from 'lucide-react';
-import Chart from 'chart.js/auto';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My購了沒(˶˙๏˙˶)b</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: black; margin: 0; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-// --- Firebase 配置 ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' 
-  ? JSON.parse(__firebase_config) 
-  : {
-      apiKey: "",
-      authDomain: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
-    };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, query, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        window.FirebaseSDK = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, query, addDoc };
+    </script>
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-shopping-tako-v1';
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
 
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [view, setView] = useState('list'); 
-  const [statMode, setStatMode] = useState('category'); 
-  const [items, setItems] = useState([]);
-  
-  const [targets, setTargets] = useState(["自己", "家人", "朋友"]);
-  const [cats, setCats] = useState(["藥妝", "零食", "精品"]);
-  const [newTargetInput, setNewTargetInput] = useState("");
-  const [newCatInput, setNewCatInput] = useState("");
-  
-  const [selT, setSelT] = useState("自己");
-  const [selC, setSelC] = useState("藥妝");
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("TWD");
-  const [img, setImg] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [rates, setRates] = useState({ KRW: 41, JPY: 4.6, USD: 0.031 });
-  const [showSettings, setShowSettings] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+        // 圖示組件 (代替 Lucide)
+        const Icons = {
+            Settings: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            List: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+            BarChart2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+            Camera: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+            CheckCircle2: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            Circle: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>,
+            X: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        };
 
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
-
-  // 1. 初始化 Auth
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (e) { console.error("Auth Error:", e); }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  // 2. 監聽 Firestore 數據
-  useEffect(() => {
-    if (!user) return;
-
-    const itemsCol = collection(db, 'artifacts', appId, 'users', user.uid, 'items');
-    const unsubItems = onSnapshot(itemsCol, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setItems(data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
-    });
-
-    const settingsDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'tags');
-    const unsubSettings = onSnapshot(settingsDocRef, (snap) => {
-      if (snap.exists()) {
-        const d = snap.data();
-        if (d.targets && Array.isArray(d.targets)) setTargets(d.targets);
-        if (d.cats && Array.isArray(d.cats)) setCats(d.cats);
-      }
-    });
-
-    return () => { unsubItems(); unsubSettings(); };
-  }, [user]);
-
-  // 匯率 API
-  useEffect(() => {
-    fetch('https://open.er-api.com/v6/latest/TWD')
-      .then(r => r.json())
-      .then(d => setRates(d.rates))
-      .catch(e => console.error(e));
-  }, []);
-
-  // 統計邏輯 - 修正為正確處理數據
-  const stats = useMemo(() => {
-    const boughtItems = items.filter(i => i.bought);
-    const dataMap = {};
-    const key = statMode === 'category' ? 'category' : 'target';
-    
-    boughtItems.forEach(item => {
-      const val = item[key] || "未分類";
-      dataMap[val] = (dataMap[val] || 0) + (item.priceInTWD || 0);
-    });
-    
-    const total = Object.values(dataMap).reduce((a, b) => a + b, 0);
-    return { dataMap, total };
-  }, [items, statMode]);
-
-  // 圖表渲染
-  useEffect(() => {
-    if (view === 'stats' && chartRef.current) {
-      const ctx = chartRef.current.getContext('2d');
-      if (chartInstance.current) chartInstance.current.destroy();
-      
-      const labels = Object.keys(stats.dataMap);
-      const data = Object.values(stats.dataMap);
-
-      if (labels.length > 0) {
-        chartInstance.current = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: labels,
-            datasets: [{
-              data: data,
-              backgroundColor: ['#FFFFFF', '#D1D1D6', '#8E8E93', '#48484A', '#2C2C2E', '#636366'],
-              borderWidth: 0,
-              hoverOffset: 10
-            }]
-          },
-          options: {
-            cutout: '70%',
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (context) => ` $${Math.round(context.raw).toLocaleString()} TWD`
-                }
-              }
-            },
-            maintainAspectRatio: false
-          }
-        });
-      }
-    }
-    return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-  }, [view, stats]);
-
-  // 更新標籤
-  const saveTags = async (newT, newC) => {
-    if (!user) return;
-    try {
-      const settingsDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'tags');
-      await setDoc(settingsDocRef, { targets: newT, cats: newC, updatedAt: Date.now() }, { merge: true });
-    } catch (e) { console.error("Save Tags Error:", e); }
-  };
-
-  const handleAddTarget = () => {
-    if (newTargetInput.trim()) {
-      const newList = [...targets, newTargetInput.trim()];
-      setTargets(newList);
-      saveTags(newList, cats);
-      setNewTargetInput("");
-    }
-  };
-
-  const handleAddCat = () => {
-    if (newCatInput.trim()) {
-      const newList = [...cats, newCatInput.trim()];
-      setCats(newList);
-      saveTags(targets, newList);
-      setNewCatInput("");
-    }
-  };
-
-  const handleRemoveTarget = (t) => {
-    const newList = targets.filter(x => x !== t);
-    setTargets(newList);
-    saveTags(newList, cats);
-  };
-
-  const handleRemoveCat = (c) => {
-    const newList = cats.filter(x => x !== c);
-    setCats(newList);
-    saveTags(targets, newList);
-  };
-
-  // 商品儲存
-  const handleSaveItem = async () => {
-    if (!name || !user) return;
-    const p = parseFloat(price) || 0;
-    const twd = currency === 'TWD' ? p : (p / (rates[currency] || 1));
-    const data = { 
-      name: name.trim(), price: p, currency, target: selT, category: selC, 
-      priceInTWD: twd, image: img, updatedAt: Date.now() 
-    };
-    try {
-      if (editingId) {
-        await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', editingId), data);
-      } else {
-        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'items'), { ...data, bought: false, createdAt: Date.now() });
-      }
-      setName(""); setPrice(""); setImg(null); setEditingId(null);
-    } catch (e) { console.error(e); }
-  };
-
-  return (
-    <div className="min-h-screen bg-black text-white pb-32 font-sans antialiased">
-      <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5 px-6 py-6">
-        <div className="max-w-xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-black tracking-widest uppercase">My購了沒<span className="opacity-40 lowercase ml-1">(˶˙๏˙˶)b</span></h1>
-          <button onClick={() => setShowSettings(true)} className="p-3 bg-white/5 rounded-full border border-white/10 active:scale-90 transition-all"><Settings size={20} /></button>
-        </div>
-      </header>
-
-      <main className="max-w-xl mx-auto px-5 pt-6 space-y-8">
-        {view === 'list' ? (
-          <>
-            <section className="bg-zinc-900/40 p-6 rounded-[2.5rem] border border-white/10 space-y-6 shadow-2xl">
-              <div className="space-y-4">
-                <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                  {targets.map(t => (
-                    <button key={t} onClick={() => setSelT(t)} className={`px-5 py-2.5 rounded-full text-[10px] font-black transition-all flex-none ${selT === t ? 'bg-white text-black' : 'bg-white/5 text-white/40'}`}>{t}</button>
-                  ))}
-                </div>
-                <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                  {cats.map(c => (
-                    <button key={c} onClick={() => setSelC(c)} className={`px-5 py-2.5 rounded-full text-[10px] font-black transition-all flex-none ${selC === c ? 'bg-zinc-800 text-white border border-white/10' : 'bg-white/5 text-white/40'}`}>{c}</button>
-                  ))}
-                </div>
-              </div>
-              
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="想要買什麼..." className="w-full bg-white/5 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-1 focus:ring-white/20" />
-              
-              <div className="flex bg-white/5 rounded-2xl items-center overflow-hidden border border-white/5">
-                <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="金額" className="flex-1 bg-transparent border-none py-4 text-left font-black text-lg font-mono focus:ring-0 pl-6" />
-                <div className="h-8 w-px bg-white/10 ml-2"></div>
-                <select value={currency} onChange={e => setCurrency(e.target.value)} className="bg-transparent border-none text-[10px] font-black px-6 text-white focus:ring-0 uppercase cursor-pointer">
-                  <option className="bg-zinc-900">TWD</option>
-                  <option className="bg-zinc-900">KRW</option>
-                  <option className="bg-zinc-900">JPY</option>
-                  <option className="bg-zinc-900">USD</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => document.getElementById('cam-fix').click()} className="flex-1 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-[10px] font-black gap-2 border border-white/5">{img ? '✓ 已選照片' : <Camera size={18}/>}</button>
-                <button onClick={handleSaveItem} className="px-12 h-14 bg-white text-black rounded-2xl font-black text-[11px] tracking-widest uppercase active:scale-95 transition-transform">{editingId ? '儲存' : '新增'}</button>
-              </div>
-              <input type="file" id="cam-fix" className="hidden" accept="image/*" onChange={e => {
-                const f = e.target.files[0];
-                if (f) { const r = new FileReader(); r.onload = ev => setImg(ev.target.result); r.readAsDataURL(f); }
-              }} />
-            </section>
-
-            <div className="space-y-6">
-              {items.map(item => (
-                <div key={item.id} className="bg-zinc-900/30 rounded-[2.5rem] border border-white/5 overflow-hidden transition-all">
-                  <div className={`relative h-60 bg-zinc-950 flex items-center justify-center transition-opacity ${item.bought ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}`}>
-                    {item.image ? <img src={item.image} className="w-full h-full object-cover" alt="" /> : <div className="text-white/5 font-black text-4xl italic">TAKO</div>}
-                    <div className="absolute top-5 left-5 flex gap-2">
-                      <span className="bg-white/90 text-black px-3 py-1.5 rounded-full text-[8px] font-black uppercase">{item.target}</span>
-                      <span className="bg-black/40 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase border border-white/10">{item.category}</span>
-                    </div>
-                  </div>
-                  <div className="p-8 space-y-6">
-                    <div className={`flex justify-between items-center transition-opacity ${item.bought ? 'opacity-40' : 'opacity-100'}`}>
-                      <div className="min-w-0">
-                        <h3 className="text-xl font-black truncate">{item.name}</h3>
-                        {/* 幣別加粗 */}
-                        <p className="font-black text-white/60 text-sm mt-1 uppercase">
-                          ${Math.round(item.priceInTWD).toLocaleString()} TWD
-                        </p>
-                      </div>
-                      <button onClick={() => updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', item.id), { bought: !item.bought })} className={`p-4 rounded-full transition-all ${item.bought ? 'bg-white text-black shadow-lg shadow-white/5' : 'bg-white/5 text-white/30 border border-white/5'}`}>
-                        {item.bought ? <CheckCircle2 size={24}/> : <Circle size={24}/>}
-                      </button>
-                    </div>
-                    <div className="flex gap-2 pt-4 border-t border-white/5">
-                      <button onClick={() => {setEditingId(item.id); setName(item.name); setPrice(item.price.toString()); setCurrency(item.currency); setSelT(item.target); setSelC(item.category); setImg(item.image); window.scrollTo({top:0, behavior:'smooth'})}} className="flex-1 py-3 bg-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest transition-colors active:scale-95">編輯</button>
-                      <button onClick={() => setDeleteConfirmId(item.id)} className="flex-1 py-3 bg-red-500/20 rounded-xl text-[9px] font-black text-red-500 uppercase tracking-widest transition-colors active:scale-95">刪除</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="space-y-10 animate-in fade-in py-6">
-            <div className="bg-zinc-900/50 p-1.5 rounded-full border border-white/10 flex">
-              <button onClick={() => setStatMode('category')} className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase transition-all ${statMode === 'category' ? 'bg-white text-black' : 'text-white/30'}`}>類別</button>
-              <button onClick={() => setStatMode('target')} className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase transition-all ${statMode === 'target' ? 'bg-white text-black' : 'text-white/30'}`}>對象</button>
-            </div>
+        const App = () => {
+            const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, query, addDoc } = window.FirebaseSDK;
             
-            {/* 圓餅圖容器 */}
-            <div className="relative h-72 flex items-center justify-center">
-              {Object.keys(stats.dataMap).length > 0 ? (
-                <>
-                  <canvas ref={chartRef}></canvas>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">總計花費</p>
-                    <p className="text-2xl font-black mt-1">${Math.round(stats.total).toLocaleString()}</p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-white/20 font-black text-sm uppercase tracking-widest italic text-center">
-                  尚無已購買數據<br/><span className="text-[10px] opacity-50 lowercase">請勾選項目以產生統計</span>
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-shopping-tako-v1';
+
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('list'); 
+            const [statMode, setStatMode] = useState('category'); 
+            const [items, setItems] = useState([]);
+            
+            const [targets, setTargets] = useState(["自己", "家人", "朋友"]);
+            const [cats, setCats] = useState(["藥妝", "零食", "精品"]);
+            const [newTargetInput, setNewTargetInput] = useState("");
+            const [newCatInput, setNewCatInput] = useState("");
+            
+            const [selT, setSelT] = useState("自己");
+            const [selC, setSelC] = useState("藥妝");
+            const [name, setName] = useState("");
+            const [price, setPrice] = useState("");
+            const [currency, setCurrency] = useState("TWD");
+            const [img, setImg] = useState(null);
+            const [editingId, setEditingId] = useState(null);
+            const [rates, setRates] = useState({ KRW: 41, JPY: 4.6, USD: 0.031 });
+            const [showSettings, setShowSettings] = useState(false);
+            const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) { console.error("Auth Error:", e); }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const itemsCol = collection(db, 'artifacts', appId, 'users', user.uid, 'items');
+                const unsubItems = onSnapshot(itemsCol, (snap) => {
+                    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setItems(data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
+                });
+                const settingsDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'tags');
+                const unsubSettings = onSnapshot(settingsDocRef, (snap) => {
+                    if (snap.exists()) {
+                        const d = snap.data();
+                        if (d.targets) setTargets(d.targets);
+                        if (d.cats) setCats(d.cats);
+                    }
+                });
+                return () => { unsubItems(); unsubSettings(); };
+            }, [user]);
+
+            useEffect(() => {
+                fetch('https://open.er-api.com/v6/latest/TWD').then(r => r.json()).then(d => setRates(d.rates));
+            }, []);
+
+            const stats = useMemo(() => {
+                const boughtItems = items.filter(i => i.bought);
+                const dataMap = {};
+                const key = statMode === 'category' ? 'category' : 'target';
+                boughtItems.forEach(item => {
+                    const val = item[key] || "未分類";
+                    dataMap[val] = (dataMap[val] || 0) + (item.priceInTWD || 0);
+                });
+                return { dataMap, total: Object.values(dataMap).reduce((a, b) => a + b, 0) };
+            }, [items, statMode]);
+
+            useEffect(() => {
+                if (view === 'stats' && chartRef.current && Object.keys(stats.dataMap).length > 0) {
+                    const ctx = chartRef.current.getContext('2d');
+                    if (chartInstance.current) chartInstance.current.destroy();
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(stats.dataMap),
+                            datasets: [{
+                                data: Object.values(stats.dataMap),
+                                backgroundColor: ['#FFFFFF', '#D1D1D6', '#8E8E93', '#48484A', '#2C2C2E', '#636366'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { cutout: '70%', plugins: { legend: { display: false } }, maintainAspectRatio: false }
+                    });
+                }
+            }, [view, stats]);
+
+            const saveTags = async (newT, newC) => {
+                if (!user) return;
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'tags'), { targets: newT, cats: newC, updatedAt: Date.now() }, { merge: true });
+            };
+
+            const handleAddTarget = () => {
+                if (newTargetInput.trim()) {
+                    const newList = [...targets, newTargetInput.trim()];
+                    setTargets(newList);
+                    saveTags(newList, cats);
+                    setNewTargetInput("");
+                }
+            };
+
+            const handleAddCat = () => {
+                if (newCatInput.trim()) {
+                    const newList = [...cats, newCatInput.trim()];
+                    setCats(newList);
+                    saveTags(targets, newList);
+                    setNewCatInput("");
+                }
+            };
+
+            const handleSaveItem = async () => {
+                if (!name || !user) return;
+                const p = parseFloat(price) || 0;
+                const twd = currency === 'TWD' ? p : (p / (rates[currency] || 1));
+                const data = { name: name.trim(), price: p, currency, target: selT, category: selC, priceInTWD: twd, image: img, updatedAt: Date.now() };
+                if (editingId) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', editingId), data);
+                } else {
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'items'), { ...data, bought: false, createdAt: Date.now() });
+                }
+                setName(""); setPrice(""); setImg(null); setEditingId(null);
+            };
+
+            return (
+                <div className="min-h-screen bg-black text-white pb-32 font-sans antialiased">
+                    <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5 px-6 py-6">
+                        <div className="max-w-xl mx-auto flex justify-between items-center">
+                            <h1 className="text-xl font-black tracking-widest uppercase">My購了沒<span className="opacity-40 lowercase ml-1">(˶˙๏˙˶)b</span></h1>
+                            <button onClick={() => setShowSettings(true)} className="p-3 bg-white/5 rounded-full border border-white/10 active:scale-90 transition-all"><Icons.Settings /></button>
+                        </div>
+                    </header>
+
+                    <main className="max-w-xl mx-auto px-5 pt-6 space-y-8">
+                        {view === 'list' ? (
+                            <>
+                                <section className="bg-zinc-900/40 p-6 rounded-[2.5rem] border border-white/10 space-y-6 shadow-2xl">
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                                            {targets.map(t => (
+                                                <button key={t} onClick={() => setSelT(t)} className={`px-5 py-2.5 rounded-full text-[10px] font-black transition-all flex-none ${selT === t ? 'bg-white text-black' : 'bg-white/5 text-white/40'}`}>{t}</button>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                                            {cats.map(c => (
+                                                <button key={c} onClick={() => setSelC(c)} className={`px-5 py-2.5 rounded-full text-[10px] font-black transition-all flex-none ${selC === c ? 'bg-zinc-800 text-white border border-white/10' : 'bg-white/5 text-white/40'}`}>{c}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <input value={name} onChange={e => setName(e.target.value)} placeholder="想要買什麼..." className="w-full bg-white/5 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-1 focus:ring-white/20" />
+                                    <div className="flex bg-white/5 rounded-2xl items-center overflow-hidden border border-white/5">
+                                        <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="金額" className="flex-1 bg-transparent border-none py-4 text-left font-black text-lg font-mono focus:ring-0 pl-6" />
+                                        <div className="h-8 w-px bg-white/10 ml-2"></div>
+                                        <select value={currency} onChange={e => setCurrency(e.target.value)} className="bg-transparent border-none text-[10px] font-black px-6 text-white focus:ring-0 uppercase cursor-pointer">
+                                            <option className="bg-zinc-900">TWD</option>
+                                            <option className="bg-zinc-900">KRW</option>
+                                            <option className="bg-zinc-900">JPY</option>
+                                            <option className="bg-zinc-900">USD</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => document.getElementById('cam-fix').click()} className="flex-1 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-[10px] font-black gap-2 border border-white/5">{img ? '✓ 已選照片' : <Icons.Camera size={18}/>}</button>
+                                        <button onClick={handleSaveItem} className="px-12 h-14 bg-white text-black rounded-2xl font-black text-[11px] tracking-widest uppercase active:scale-95 transition-transform">{editingId ? '儲存' : '新增'}</button>
+                                    </div>
+                                    <input type="file" id="cam-fix" className="hidden" accept="image/*" onChange={e => {
+                                        const f = e.target.files[0];
+                                        if (f) { const r = new FileReader(); r.onload = ev => setImg(ev.target.result); r.readAsDataURL(f); }
+                                    }} />
+                                </section>
+
+                                <div className="space-y-6">
+                                    {items.map(item => (
+                                        <div key={item.id} className="bg-zinc-900/30 rounded-[2.5rem] border border-white/5 overflow-hidden transition-all">
+                                            <div className={`relative h-60 bg-zinc-950 flex items-center justify-center transition-opacity ${item.bought ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}`}>
+                                                {item.image ? <img src={item.image} className="w-full h-full object-cover" alt="" /> : <div className="text-white/5 font-black text-4xl italic">TAKO</div>}
+                                                <div className="absolute top-5 left-5 flex gap-2">
+                                                    <span className="bg-white/90 text-black px-3 py-1.5 rounded-full text-[8px] font-black uppercase">{item.target}</span>
+                                                    <span className="bg-black/40 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase border border-white/10">{item.category}</span>
+                                                </div>
+                                            </div>
+                                            <div className="p-8 space-y-6">
+                                                <div className={`flex justify-between items-center transition-opacity ${item.bought ? 'opacity-40' : 'opacity-100'}`}>
+                                                    <div className="min-w-0">
+                                                        <h3 className="text-xl font-black truncate">{item.name}</h3>
+                                                        <p className="font-black text-white/60 text-sm mt-1 uppercase tracking-tight">
+                                                            ${Math.round(item.priceInTWD).toLocaleString()} TWD
+                                                        </p>
+                                                    </div>
+                                                    <button onClick={() => updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', item.id), { bought: !item.bought })} className={`p-4 rounded-full transition-all ${item.bought ? 'bg-white text-black' : 'bg-white/5 text-white/30 border border-white/5'}`}>
+                                                        {item.bought ? <Icons.CheckCircle2 size={24}/> : <Icons.Circle size={24}/>}
+                                                    </button>
+                                                </div>
+                                                <div className="flex gap-2 pt-4 border-t border-white/5">
+                                                    <button onClick={() => {setEditingId(item.id); setName(item.name); setPrice(item.price.toString()); setCurrency(item.currency); setSelT(item.target); setSelC(item.category); setImg(item.image); window.scrollTo({top:0, behavior:'smooth'})}} className="flex-1 py-3 bg-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest transition-colors active:scale-95">編輯</button>
+                                                    <button onClick={() => setDeleteConfirmId(item.id)} className="flex-1 py-3 bg-red-500/20 rounded-xl text-[9px] font-black text-red-500 uppercase tracking-widest transition-colors active:scale-95">刪除</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-10 animate-in fade-in py-6">
+                                <div className="bg-zinc-900/50 p-1.5 rounded-full border border-white/10 flex">
+                                    <button onClick={() => setStatMode('category')} className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase transition-all ${statMode === 'category' ? 'bg-white text-black' : 'text-white/30'}`}>類別</button>
+                                    <button onClick={() => setStatMode('target')} className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase transition-all ${statMode === 'target' ? 'bg-white text-black' : 'text-white/30'}`}>對象</button>
+                                </div>
+                                <div className="relative h-72 flex items-center justify-center">
+                                    {Object.keys(stats.dataMap).length > 0 ? (
+                                        <>
+                                            <canvas ref={chartRef}></canvas>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">總計花費</p>
+                                                <p className="text-2xl font-black mt-1">${Math.round(stats.total).toLocaleString()}</p>
+                                            </div>
+                                        </>
+                                    ) : <div className="text-white/20 font-black italic">尚無數據</div>}
+                                </div>
+                                <div className="space-y-3">
+                                    {Object.entries(stats.dataMap).map(([label, val]) => (
+                                        <div key={label} className="flex justify-between items-center p-6 bg-zinc-900/40 rounded-3xl border border-white/5">
+                                            <span className="text-[11px] font-black uppercase text-white/60 tracking-widest">{label}</span>
+                                            <span className="font-black text-lg">${Math.round(val).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    <nav className="fixed bottom-10 inset-x-0 flex justify-center z-50">
+                        <div className="bg-black/90 backdrop-blur-2xl px-12 py-5 rounded-full border border-white/10 flex gap-20 shadow-2xl items-center">
+                            <button onClick={() => setView('list')} className={view === 'list' ? 'text-white' : 'text-white/20'}><Icons.List/></button>
+                            <button onClick={() => setView('stats')} className={view === 'stats' ? 'text-white' : 'text-white/20'}><Icons.BarChart2/></button>
+                        </div>
+                    </nav>
+
+                    {showSettings && (
+                        <div className="fixed inset-0 z-[100] bg-black p-10 overflow-y-auto">
+                            <div className="max-w-md mx-auto space-y-12 pb-24">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-2xl font-black tracking-widest italic">SETTINGS</h2>
+                                    <button onClick={() => setShowSettings(false)} className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center"><Icons.X/></button>
+                                </div>
+                                <div className="space-y-8">
+                                    <div className="space-y-4">
+                                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">對象管理</p>
+                                        <div className="flex gap-2">
+                                            <input value={newTargetInput} onChange={e => setNewTargetInput(e.target.value)} className="flex-1 bg-white/5 rounded-xl border-none p-4 text-xs font-black text-white" placeholder="新對象" />
+                                            <button onClick={handleAddTarget} className="bg-white text-black px-6 rounded-xl font-black">+</button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {targets.map(t => <span key={t} className="px-4 py-2 bg-zinc-900 rounded-lg text-[10px] font-black flex items-center gap-2">{t} <button onClick={() => setTargets(targets.filter(x => x !== t))}>×</button></span>)}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">分類管理</p>
+                                        <div className="flex gap-2">
+                                            <input value={newCatInput} onChange={e => setNewCatInput(e.target.value)} className="flex-1 bg-white/5 rounded-xl border-none p-4 text-xs font-black text-white" placeholder="新分類" />
+                                            <button onClick={handleAddCat} className="bg-white text-black px-6 rounded-xl font-black">+</button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {cats.map(c => <span key={c} className="px-4 py-2 bg-zinc-900 rounded-lg text-[10px] font-black flex items-center gap-2">{c} <button onClick={() => setCats(cats.filter(x => x !== c))}>×</button></span>)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {deleteConfirmId && (
+                        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-6 text-center text-white">
+                            <div className="bg-zinc-900 p-10 rounded-[2.5rem] border border-white/10 w-full max-w-xs space-y-8">
+                                <p className="font-black uppercase tracking-widest text-sm">確認刪除？</p>
+                                <div className="flex flex-col gap-3">
+                                    <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', deleteConfirmId)); setDeleteConfirmId(null); }} className="py-5 bg-red-500 text-white rounded-2xl font-black text-[10px] uppercase">確認</button>
+                                    <button onClick={() => setDeleteConfirmId(null)} className="py-5 bg-white/5 text-white/40 rounded-2xl font-black text-[10px] uppercase">取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-              )}
-            </div>
+            );
+        };
 
-            <div className="space-y-3">
-              {Object.entries(stats.dataMap).map(([label, val]) => (
-                <div key={label} className="flex justify-between items-center p-6 bg-zinc-900/40 rounded-3xl border border-white/5">
-                  <span className="text-[11px] font-black uppercase text-white/60 tracking-widest">{label}</span>
-                  <span className="font-black text-lg">${Math.round(val).toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </main>
-
-      <nav className="fixed bottom-10 inset-x-0 flex justify-center z-50">
-        <div className="bg-black/90 backdrop-blur-2xl px-12 py-5 rounded-full border border-white/10 flex gap-20 shadow-2xl items-center">
-          <button onClick={() => setView('list')} className={view === 'list' ? 'text-white' : 'text-white/20'}><List size={24}/></button>
-          <button onClick={() => setView('stats')} className={view === 'stats' ? 'text-white' : 'text-white/20'}><BarChart2 size={24}/></button>
-        </div>
-      </nav>
-
-      {showSettings && (
-        <div className="fixed inset-0 z-[100] bg-black p-10 overflow-y-auto animate-in slide-in-from-bottom duration-300">
-           <div className="max-w-md mx-auto space-y-12 pb-24">
-             <div className="flex justify-between items-center">
-               <h2 className="text-2xl font-black uppercase tracking-widest italic underline decoration-white/20 underline-offset-8">SETTINGS</h2>
-               <button onClick={() => setShowSettings(false)} className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-lg"><X/></button>
-             </div>
-             
-             <div className="space-y-12">
-               <div className="space-y-6">
-                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">對象標籤管理</p>
-                 <div className="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10 focus-within:border-white/20 transition-all">
-                   <input value={newTargetInput} onChange={e => setNewTargetInput(e.target.value)} placeholder="輸入新對象..." className="flex-1 bg-transparent border-none py-2 px-3 text-xs font-black focus:ring-0" />
-                   <button onClick={handleAddTarget} className="bg-white text-black p-2 rounded-xl active:scale-90 transition-transform"><Check size={18}/></button>
-                 </div>
-                 <div className="flex flex-wrap gap-2">
-                   {targets.map(t => (
-                     <span key={t} className="px-4 py-3 bg-zinc-900 rounded-xl text-xs font-black flex items-center gap-3 border border-white/5 shadow-xl">
-                       {t} 
-                       <button onClick={() => handleRemoveTarget(t)} className="opacity-20 hover:opacity-100 hover:text-red-500 transition-all"><X size={14}/></button>
-                     </span>
-                   ))}
-                 </div>
-               </div>
-
-               <div className="space-y-6">
-                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">分類標籤管理</p>
-                 <div className="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10 focus-within:border-white/20 transition-all">
-                   <input value={newCatInput} onChange={e => setNewCatInput(e.target.value)} placeholder="輸入新分類..." className="flex-1 bg-transparent border-none py-2 px-3 text-xs font-black focus:ring-0" />
-                   <button onClick={handleAddCat} className="bg-white text-black p-2 rounded-xl active:scale-90 transition-transform"><Check size={18}/></button>
-                 </div>
-                 <div className="flex flex-wrap gap-2">
-                   {cats.map(c => (
-                     <span key={c} className="px-4 py-3 bg-zinc-900 rounded-xl text-xs font-black flex items-center gap-3 border border-white/5 shadow-xl">
-                       {c} 
-                       <button onClick={() => handleRemoveCat(c)} className="opacity-20 hover:opacity-100 hover:text-red-500 transition-all"><X size={14}/></button>
-                     </span>
-                   ))}
-                 </div>
-               </div>
-             </div>
-           </div>
-        </div>
-      )}
-
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 text-center">
-          <div className="bg-zinc-900 p-10 rounded-[2.5rem] border border-white/10 w-full max-w-xs space-y-8">
-             <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto"><AlertCircle size={40}/></div>
-             <p className="font-black uppercase tracking-widest text-sm text-white/80">確認要移除此項目？</p>
-             <div className="flex flex-col gap-3">
-               <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', deleteConfirmId)); setDeleteConfirmId(null); }} className="py-5 bg-red-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em]">確認刪除</button>
-               <button onClick={() => setDeleteConfirmId(null)} className="py-5 bg-white/5 text-white/40 rounded-2xl font-black text-[10px] uppercase">返回</button>
-             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
 
