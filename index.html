@@ -37,17 +37,19 @@
         .item-card { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 彈窗樣式 */
         #modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200;
             display: none; flex-direction: column; padding: 20px; overflow-y: auto;
         }
 
         .edit-tag-item {
             display: inline-flex; align-items: center; gap: 8px;
-            background: #222; padding: 6px 12px; border-radius: 12px;
-            font-size: 12px; font-weight: 600; margin: 4px;
+            background: #222; padding: 6px 14px; border-radius: 12px;
+            font-size: 12px; font-weight: 600; margin: 4px; border: 1px solid rgba(255,255,255,0.05);
         }
+        
+        /* 統計切換按鈕樣式 */
+        .stat-toggle-btn.active { background: #fff; color: #000; }
     </style>
 </head>
 <body class="pb-32">
@@ -56,38 +58,39 @@
         <div class="text-[10px] wide-title animate-pulse">SYNCING...</div>
     </div>
 
-    <!-- 標籤編輯彈窗 (改為清單模式) -->
+    <!-- 標籤管理視窗 -->
     <div id="modal-overlay">
-        <div class="max-w-md mx-auto w-full space-y-8 py-10">
+        <div class="max-w-md mx-auto w-full space-y-10 py-10">
             <div class="flex justify-between items-center">
                 <h2 class="wide-title text-sm">管理標籤</h2>
-                <button onclick="closeModal()" class="bg-white/10 px-4 py-2 rounded-full text-[10px] font-bold">DONE</button>
+                <button onclick="closeModal()" class="bg-white/10 px-5 py-2 rounded-full text-[10px] font-bold">DONE</button>
             </div>
 
-            <!-- 管理對象 -->
-            <div class="space-y-4">
+            <div class="space-y-6">
                 <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">Target 對象管理</p>
                 <div class="flex gap-2">
-                    <input type="text" id="add-target-input" placeholder="新增對象..." class="flex-1 dark-input px-4 py-3 text-xs">
-                    <button onclick="quickAddTag('T')" class="bg-white text-black px-4 rounded-xl text-[10px] font-black uppercase">Add</button>
+                    <input type="text" id="add-target-input" placeholder="輸入名稱..." class="flex-1 dark-input px-4 py-4 text-xs">
+                    <button onclick="quickAddTag('T')" class="bg-white text-black px-6 rounded-xl text-[10px] font-black uppercase">Add</button>
                 </div>
                 <div id="edit-targets-list" class="flex flex-wrap pt-2"></div>
             </div>
 
-            <!-- 管理類別 -->
-            <div class="space-y-4">
+            <div class="space-y-6">
                 <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">Category 類別管理</p>
                 <div class="flex gap-2">
-                    <input type="text" id="add-cat-input" placeholder="新增類別..." class="flex-1 dark-input px-4 py-3 text-xs">
-                    <button onclick="quickAddTag('C')" class="bg-white text-black px-4 rounded-xl text-[10px] font-black uppercase">Add</button>
+                    <input type="text" id="add-cat-input" placeholder="輸入名稱..." class="flex-1 dark-input px-4 py-4 text-xs">
+                    <button onclick="quickAddTag('C')" class="bg-white text-black px-6 rounded-xl text-[10px] font-black uppercase">Add</button>
                 </div>
                 <div id="edit-cats-list" class="flex flex-wrap pt-2"></div>
             </div>
             
-            <p class="text-center text-[9px] text-white/10">提示：點擊標籤旁的 ✕ 即可刪除</p>
+            <div class="pt-10 opacity-20 text-center">
+                <p class="text-[9px] font-bold">點擊 ✕ 刪除標籤</p>
+            </div>
         </div>
     </div>
 
+    <!-- 主選單 -->
     <nav class="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5 p-6">
         <div class="max-w-xl mx-auto">
             <div class="flex justify-between items-center mb-6">
@@ -101,7 +104,7 @@
                     </button>
                 </div>
             </div>
-            <div id="ex-rate" class="text-[9px] text-white/20 font-mono tracking-tighter mb-4">Rates: Local Cache</div>
+            <div id="ex-rate" class="text-[9px] text-white/20 font-mono tracking-tighter mb-4">Rates: Loading...</div>
             <div class="flex gap-10">
                 <div>
                     <p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1">Spent 已花費</p>
@@ -109,7 +112,7 @@
                 </div>
                 <div>
                     <p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1 text-zinc-600">Budget 待購</p>
-                    <p class="text-2xl font-black text-white/20" id="total-budget">$0</p>
+                    <p class="text-2xl font-black text-zinc-800" id="total-budget">$0</p>
                 </div>
             </div>
         </div>
@@ -147,13 +150,10 @@
 
         <div id="view-stats" class="hidden py-4 space-y-8">
             <div class="flex bg-zinc-900/50 p-1 rounded-full border border-white/5 max-w-[200px] mx-auto">
-                <button id="toggle-cat" onclick="setStatType('category')" class="flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all duration-300 active">類別</button>
-                <button id="toggle-tar" onclick="setStatType('target')" class="flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all duration-300">對象</button>
+                <button id="toggle-cat" onclick="setStatType('category')" class="stat-toggle-btn flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all duration-300 active">類別</button>
+                <button id="toggle-tar" onclick="setStatType('target')" class="stat-toggle-btn flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all duration-300">對象</button>
             </div>
-            <style>
-                #toggle-cat.active, #toggle-tar.active { background: #fff; color: #000; }
-            </style>
-            <div class="relative w-56 h-56 mx-auto">
+            <div class="relative w-64 h-64 mx-auto">
                 <canvas id="stat-chart"></canvas>
                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <div class="text-[8px] text-white/20 font-black uppercase tracking-widest">Spent</div>
@@ -164,6 +164,7 @@
         </div>
     </main>
 
+    <!-- 底部導覽 -->
     <div class="fixed bottom-8 inset-x-0 flex justify-center z-50">
         <div class="bg-zinc-900/90 backdrop-blur-2xl px-12 py-4 rounded-full border border-white/10 flex gap-20 shadow-2xl">
             <button onclick="setTab('list')" id="nav-list" class="nav-btn active flex flex-col items-center">
@@ -180,63 +181,101 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'myshopping-vlist-final';
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        /**
+         * 重要：如果你上傳到 GitHub，請將下方的 firebaseConfig 替換成你的 Firebase 專案配置。
+         * 你可以在 Firebase Console > 專案設定 > 你的應用程式 中找到這些資訊。
+         */
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "", // 這裡貼上你的 API Key
+            authDomain: "", 
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-shopping-app-id';
+
+        let app, auth, db;
+        
+        // 狀態管理
         let s = { 
             items: JSON.parse(localStorage.getItem('my_items')) || [], 
             targets: JSON.parse(localStorage.getItem('my_targets')) || ["自己", "家人", "朋友"], 
             cats: JSON.parse(localStorage.getItem('my_cats')) || ["藥妝", "零食", "精品"], 
-            selT: "自己", 
-            selC: "藥妝", 
+            selT: "", 
+            selC: "", 
             rates: JSON.parse(localStorage.getItem('my_rates')) || { KRW: 41, JPY: 4.6, USD: 0.03 }, 
             img: null, chart: null, user: null,
             statType: 'category'
         };
 
+        // 初始化預設選擇
+        s.selT = s.targets[0];
+        s.selC = s.cats[0];
+
         window.onload = () => {
             renderTagsUI();
             renderListUI();
             fetchRates();
-            initFirebase();
+            
+            // 如果有配置 Firebase 則初始化
+            if (firebaseConfig.apiKey) {
+                initFirebase();
+            } else {
+                console.warn("Firebase 未配置，將僅使用本地儲存。");
+            }
         };
 
         async function initFirebase() {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    s.user = user;
-                    silentSync();
-                } else {
-                    await signInAnonymously(auth);
-                }
-            });
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        s.user = user;
+                        silentSync();
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                });
+            } catch (e) {
+                console.error("Firebase init failed", e);
+            }
         }
 
         async function silentSync() {
+            if (!db) return;
             try {
+                // 同步項目
                 const itemCol = collection(db, 'artifacts', appId, 'public', 'data', 'items');
                 const snap = await getDocs(itemCol);
                 if (!snap.empty) {
                     s.items = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
                     saveLocal(); renderListUI();
                 }
-                const setSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data'));
-                const settingsDoc = snap.docs.find(d => d.id === 'settings');
-                if(settingsDoc) {
-                    const data = settingsDoc.data();
+                
+                // 同步標籤設定
+                const setRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings');
+                const setSnap = await getDoc(setRef);
+                if(setSnap.exists()) {
+                    const data = setSnap.data();
                     if(data.targets) s.targets = data.targets;
                     if(data.categories) s.cats = data.categories;
                     saveLocal(); renderTagsUI();
                 }
-            } catch(e) {}
+            } catch(e) { console.error("Sync failed", e); }
         }
 
         window.cloudSync = async () => {
+            if(!s.user) {
+                alert("雲端功能未配置或未登入");
+                return;
+            }
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
             await silentSync();
@@ -249,7 +288,7 @@
             localStorage.setItem('my_cats', JSON.stringify(s.cats));
         }
 
-        // --- 標籤清單管理邏輯 ---
+        // --- 標籤管理邏輯 ---
         window.openModal = () => {
             renderEditModalLists();
             document.getElementById('modal-overlay').style.display = 'flex';
@@ -265,13 +304,13 @@
             
             tList.innerHTML = s.targets.map(t => `
                 <div class="edit-tag-item">
-                    ${t} <span onclick="removeTag('T','${t}')" class="ml-1 opacity-40 cursor-pointer">✕</span>
+                    ${t} <span onclick="removeTag('T','${t}')" class="ml-2 opacity-30 hover:opacity-100 cursor-pointer">✕</span>
                 </div>
             `).join('');
             
             cList.innerHTML = s.cats.map(c => `
                 <div class="edit-tag-item">
-                    ${c} <span onclick="removeTag('C','${c}')" class="ml-1 opacity-40 cursor-pointer">✕</span>
+                    ${c} <span onclick="removeTag('C','${c}')" class="ml-2 opacity-30 hover:opacity-100 cursor-pointer">✕</span>
                 </div>
             `).join('');
         }
@@ -296,7 +335,6 @@
             if(type === 'T') s.targets = s.targets.filter(x => x !== val);
             if(type === 'C') s.cats = s.cats.filter(x => x !== val);
             
-            // 確保至少留一個
             if(s.targets.length === 0) s.targets = ["未分類"];
             if(s.cats.length === 0) s.cats = ["未分類"];
             
@@ -310,12 +348,19 @@
         };
 
         function syncSettingsToCloud() {
-            if(s.user) {
-                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings'), { targets: s.targets, categories: s.cats }, { merge: true });
+            if(s.user && db) {
+                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings'), { 
+                    targets: s.targets, 
+                    categories: s.cats 
+                }, { merge: true });
             }
         }
 
         window.renderTagsUI = () => {
+            // 確保目前的選擇在標籤內
+            if(!s.targets.includes(s.selT)) s.selT = s.targets[0];
+            if(!s.cats.includes(s.selC)) s.selC = s.cats[0];
+
             document.getElementById('ui-targets').innerHTML = s.targets.map(t => `<button onclick="selectTag('T','${t}')" class="tag-btn ${s.selT === t ? 'active' : ''}">${t}</button>`).join('');
             document.getElementById('ui-categories').innerHTML = s.cats.map(c => `<button onclick="selectTag('C','${c}')" class="tag-btn ${s.selC === c ? 'active' : ''}">${c}</button>`).join('');
         };
@@ -325,6 +370,7 @@
             renderTagsUI();
         };
 
+        // --- 記帳邏輯 ---
         window.handleAdd = async () => {
             const btn = document.getElementById('add-btn');
             const nameEl = document.getElementById('in-name');
@@ -348,20 +394,22 @@
             nameEl.value = ''; priceEl.value = ''; s.img = null;
             document.getElementById('ui-img-label').innerText = '加入照片';
             btn.disabled = false;
-            if(s.user) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', newId), newItem);
+            
+            if(s.user && db) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', newId), newItem);
         };
 
         window.renderListUI = () => {
             const list = document.getElementById('item-list');
             let sTotal = 0, bTotal = 0;
             const sorted = [...s.items].sort((a,b) => (a.bought ? 1 : -1));
+            
             list.innerHTML = sorted.map(i => {
                 const twd = i.priceInTWD || 0;
                 if(i.bought) sTotal += twd; else bTotal += twd;
                 return `
                 <div class="item-card bg-zinc-900/40 border border-white/5 p-4 rounded-3xl flex items-center gap-4 ${i.bought ? 'opacity-20' : ''}">
                     <div class="w-14 h-14 bg-white/5 rounded-2xl overflow-hidden flex items-center justify-center shrink-0">
-                        ${i.image ? `<img src="${i.image}" class="w-full h-full object-cover">` : '<span class="text-[8px] opacity-10 font-bold">無</span>'}
+                        ${i.image ? `<img src="${i.image}" class="w-full h-full object-cover">` : '<span class="text-[8px] opacity-10 font-bold">N/A</span>'}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex gap-1.5 mb-1.5">
@@ -377,6 +425,7 @@
                     </div>
                 </div>`;
             }).join('');
+            
             document.getElementById('total-spent').innerText = `$${Math.round(sTotal).toLocaleString()}`;
             document.getElementById('total-budget').innerText = `$${Math.round(bTotal).toLocaleString()}`;
             if(document.getElementById('center-total')) document.getElementById('center-total').innerText = `$${Math.round(sTotal).toLocaleString()}`;
@@ -387,7 +436,7 @@
             if(it) {
                 it.bought = !b;
                 saveLocal(); renderListUI();
-                if(s.user) updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id), { bought: !b });
+                if(s.user && db) updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id), { bought: !b });
             }
         };
         
@@ -395,9 +444,10 @@
             if(!confirm("確定刪除此品項？")) return;
             s.items = s.items.filter(x => x.id !== id);
             saveLocal(); renderListUI();
-            if(s.user) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id));
+            if(s.user && db) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id));
         };
 
+        // --- 頁面與統計邏輯 ---
         window.setTab = (t) => {
             document.getElementById('view-list').classList.toggle('hidden', t !== 'list');
             document.getElementById('view-stats').classList.toggle('hidden', t !== 'stats');
@@ -408,8 +458,9 @@
 
         window.setStatType = (type) => {
             s.statType = type;
-            document.getElementById('toggle-cat').classList.toggle('active', type === 'category');
-            document.getElementById('toggle-tar').classList.toggle('active', type === 'target');
+            document.querySelectorAll('.stat-toggle-btn').forEach(btn => btn.classList.remove('active'));
+            if(type === 'category') document.getElementById('toggle-cat').classList.add('active');
+            else document.getElementById('toggle-tar').classList.add('active');
             renderChart();
         };
 
@@ -425,6 +476,7 @@
             });
             const labels = Object.keys(dataMap);
             const values = Object.values(dataMap);
+            
             document.getElementById('stat-list').innerHTML = labels.map((l, i) => {
                 const perc = grandTotal > 0 ? (values[i] / grandTotal * 100).toFixed(0) : 0;
                 return `
@@ -441,15 +493,28 @@
                         </div>
                     </div>`;
             }).join('');
+            
             if(s.chart) s.chart.destroy();
             s.chart = new Chart(document.getElementById('stat-chart'), {
                 type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: values, backgroundColor: ['#FFFFFF', '#A1A1AA', '#52525B', '#27272A', '#18181B'], borderWidth: 0 }] },
-                options: { cutout: '88%', plugins: { legend: { display: false } } }
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        data: values, 
+                        backgroundColor: ['#FFFFFF', '#A1A1AA', '#52525B', '#27272A', '#18181B'], 
+                        borderWidth: 0 
+                    }] 
+                },
+                options: { 
+                    cutout: '85%', 
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 800 }
+                }
             });
             document.getElementById('center-total').innerText = `$${Math.round(grandTotal).toLocaleString()}`;
         }
 
+        // --- 圖片處理與匯率 ---
         document.getElementById('in-file').onchange = (e) => {
             const f = e.target.files[0];
             if(!f) return;
@@ -458,12 +523,12 @@
                 const img = new Image(); img.src = ev.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const max = 180; let w = img.width, h = img.height;
+                    const max = 200; let w = img.width, h = img.height;
                     if (w > max) { h = h * (max / w); w = max; }
                     canvas.width = w; canvas.height = h;
                     canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    s.img = canvas.toDataURL('image/jpeg', 0.4);
-                    document.getElementById('ui-img-label').innerText = '照片已就緒';
+                    s.img = canvas.toDataURL('image/jpeg', 0.5);
+                    document.getElementById('ui-img-label').innerText = 'PHOTO READY';
                 }
             };
             reader.readAsDataURL(f);
@@ -476,7 +541,9 @@
                 s.rates = d.rates;
                 localStorage.setItem('my_rates', JSON.stringify(d.rates));
                 document.getElementById('ex-rate').innerText = `1 TWD ≈ JPY ${d.rates.JPY.toFixed(1)} / KRW ${d.rates.KRW.toFixed(0)}`;
-            } catch(e) {}
+            } catch(e) {
+                document.getElementById('ex-rate').innerText = "Rates: Offline Mode";
+            }
         }
     </script>
 </body>
