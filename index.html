@@ -1,390 +1,435 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>My購了沒(˶˙๏˙˶)b</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box; }
-        body { background: #000; color: #fff; font-family: system-ui, -apple-system, sans-serif; padding-bottom: env(safe-area-inset-bottom); overflow-x: hidden; }
-        .wide-title { letter-spacing: 0.3em; text-indent: 0.3em; font-weight: 900; }
-        
-        #loading-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
-            display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, query, addDoc } from 'firebase/firestore';
+import { Settings, BarChart2, List, Trash2, Edit2, Share2, X, Camera, CheckCircle2, Circle, ShieldCheck, AlertCircle, ShoppingBag, Users, Tag } from 'lucide-react';
+import Chart from 'chart.js/auto';
+
+// --- Firebase 配置 ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-shopping-app-v3';
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('list'); 
+  const [statMode, setStatMode] = useState('category'); 
+  const [items, setItems] = useState([]);
+  const [targets, setTargets] = useState(["自己", "家人", "朋友"]);
+  const [cats, setCats] = useState(["藥妝", "零食", "精品"]);
+  
+  const [selT, setSelT] = useState("自己");
+  const [selC, setSelC] = useState("藥妝");
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("TWD");
+  const [img, setImg] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [rates, setRates] = useState({ KRW: 41, JPY: 4.6, USD: 0.031 });
+  const [showSettings, setShowSettings] = useState(false);
+  
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [shareLoading, setShareLoading] = useState(false);
+
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
+
+  // 初始化 Auth
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
         }
+      } catch (e) { console.error("Auth Error:", e); }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
 
-        .dark-input { background: #111; border: 1px solid #222; color: #fff; border-radius: 1rem; }
-        
-        .tag-btn { 
-            padding: 10px 18px; border-radius: 99px; font-size: 11px; font-weight: 800; 
-            white-space: nowrap; transition: 0.2s; 
-            background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3);
-            border: 1px solid transparent;
+  // 監聽 Firestore 數據
+  useEffect(() => {
+    if (!user) return;
+    const itemsCol = collection(db, 'artifacts', appId, 'users', user.uid, 'items');
+    const unsubItems = onSnapshot(itemsCol, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setItems(data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
+    });
+
+    const setDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'tags');
+    const unsubSettings = onSnapshot(setDocRef, (snap) => {
+      if (snap.exists()) {
+        const d = snap.data();
+        if (d.targets) setTargets(d.targets);
+        if (d.cats) setCats(d.cats);
+      }
+    });
+    return () => { unsubItems(); unsubSettings(); };
+  }, [user]);
+
+  // 獲取最新匯率
+  useEffect(() => {
+    fetch('https://open.er-api.com/v6/latest/TWD')
+      .then(r => r.json())
+      .then(d => setRates(d.rates));
+  }, []);
+
+  // 統計數據計算
+  const stats = useMemo(() => {
+    const boughtItems = items.filter(i => i.bought);
+    const spent = boughtItems.reduce((a, b) => a + (b.priceInTWD || 0), 0);
+    const wish = items.filter(i => !i.bought).reduce((a, b) => a + (b.priceInTWD || 0), 0);
+
+    const dataMap = {};
+    const key = statMode === 'category' ? 'category' : 'target';
+    boughtItems.forEach(item => {
+      const val = item[key] || "未分類";
+      dataMap[val] = (dataMap[val] || 0) + (item.priceInTWD || 0);
+    });
+
+    return { spent, wish, dataMap };
+  }, [items, statMode]);
+
+  // 統計圓餅圖
+  useEffect(() => {
+    if (view === 'stats' && chartRef.current && Object.keys(stats.dataMap).length > 0) {
+      if (chartInstance.current) chartInstance.current.destroy();
+      const labels = Object.keys(stats.dataMap);
+      const data = Object.values(stats.dataMap);
+      chartInstance.current = new Chart(chartRef.current, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: ['#FFFFFF', '#D1D1D6', '#8E8E93', '#48484A', '#2C2C2E', '#636366', '#3A3A3C'],
+            borderWidth: 0,
+            hoverOffset: 10
+          }]
+        },
+        options: { 
+          cutout: '75%', 
+          plugins: { legend: { display: false } },
+          animation: { duration: 800 }
         }
-        .tag-btn.active { background: #fff !important; color: #000 !important; transform: scale(1.05); }
+      });
+    }
+  }, [view, stats.dataMap]);
 
-        .nav-btn svg { opacity: 0.3; transition: 0.3s; }
-        .nav-btn.active svg { opacity: 1; transform: scale(1.1); }
-        .nav-indicator { width: 4px; height: 1px; background: transparent; transition: 0.3s; margin-top: 4px; }
-        .nav-btn.active .nav-indicator { background: #fff; width: 12px; }
-        
-        .tag-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; scrollbar-width: none; }
-        .tag-scroll::-webkit-scrollbar { display: none; }
-        
-        .item-card { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  // 重置輸入欄位的核心函式
+  const resetInputFields = () => {
+    setName("");
+    setPrice("");
+    setImg(null);
+    setEditingId(null);
+    // 強制 UI 更新
+  };
 
-        #modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 200;
-            display: none; flex-direction: column; padding: 20px; overflow-y: auto;
-        }
+  // 處理儲存
+  const handleSave = async () => {
+    if (!name || !user) return;
+    
+    // 先暫存目前需要儲存的資料
+    const p = parseFloat(price) || 0;
+    const twd = currency === 'TWD' ? p : (p / (rates[currency] || 1));
+    const data = { 
+      name: name.trim(), 
+      price: p, 
+      currency, 
+      target: selT, 
+      category: selC, 
+      priceInTWD: twd, 
+      image: img, 
+      updatedAt: Date.now() 
+    };
+    
+    try {
+      if (editingId) {
+        // 編輯模式
+        const itemRef = doc(db, 'artifacts', appId, 'users', user.uid, 'items', editingId);
+        await updateDoc(itemRef, data);
+      } else {
+        // 新增模式
+        const itemsCol = collection(db, 'artifacts', appId, 'users', user.uid, 'items');
+        await addDoc(itemsCol, { 
+          ...data, 
+          bought: false, 
+          createdAt: Date.now() 
+        });
+      }
+      // 確保在 AWAIT 之後執行清空
+      resetInputFields();
+    } catch (e) { 
+      console.error("Save Error:", e);
+      // 如果出錯也要重置嗎？通常會保留讓使用者重試，但這裡為了確保行為一致可以保留，或提示錯誤
+    }
+  };
 
-        .edit-tag-item {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: #222; padding: 8px 14px; border-radius: 12px;
-            font-size: 13px; font-weight: 600; margin: 4px; border: 1px solid rgba(255,255,255,0.1);
-        }
-    </style>
-</head>
-<body class="pb-32">
+  const toggleBought = async (item) => {
+    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', item.id), { bought: !item.bought });
+  };
 
-    <div id="loading-overlay">
-        <div class="text-[10px] wide-title animate-pulse">SYNCING...</div>
-    </div>
+  const confirmDelete = async () => {
+    if (!deleteConfirmId || !user) return;
+    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', deleteConfirmId));
+    setDeleteConfirmId(null);
+  };
 
-    <!-- 標籤管理視窗 -->
-    <div id="modal-overlay">
-        <div class="max-w-md mx-auto w-full space-y-10 py-10">
-            <div class="flex justify-between items-center">
-                <h2 class="wide-title text-sm">標籤設定</h2>
-                <button onclick="closeModal()" class="bg-white text-black px-6 py-2 rounded-full text-[10px] font-bold uppercase">完成</button>
-            </div>
+  const handleLineShare = async (item) => {
+    if (!user) return;
+    setShareLoading(true);
+    try {
+      const publicRef = collection(db, 'artifacts', appId, 'public', 'data', 'shared_items');
+      const newDoc = await addDoc(publicRef, { ...item, sharedBy: user.uid, sharedAt: Date.now(), appTitle: "(˶˙๏˙˶)b" });
+      const shareUrl = `${window.location.origin}${window.location.pathname}?shareId=${newDoc.id}`;
+      const message = `✨ 我在「My購了沒」發現好物！\n\n品項：${item.name}\n預算：${item.currency} ${item.price}\n對象：${item.target}\n分類：${item.category}\n\n看更多細節：${shareUrl}`;
+      const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
+      window.location.href = lineUrl;
+    } catch (e) { console.error(e); setShareLoading(false); }
+  };
 
-            <div class="space-y-6">
-                <p class="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">對象 (Target)</p>
-                <div class="flex gap-2">
-                    <input type="text" id="add-target-input" placeholder="例如：自己" class="flex-1 dark-input px-4 py-4 text-xs">
-                    <button onclick="quickAddTag('T')" class="bg-zinc-800 text-white px-6 rounded-xl text-[10px] font-black uppercase border border-white/10">新增</button>
-                </div>
-                <div id="edit-targets-list" class="flex flex-wrap"></div>
-            </div>
+  const updateTags = async (newT, newC) => {
+    if (!user) return;
+    setTargets(newT); setCats(newC);
+    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'tags'), { targets: newT, cats: newC });
+  };
 
-            <div class="space-y-6">
-                <p class="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">類別 (Category)</p>
-                <div class="flex gap-2">
-                    <input type="text" id="add-cat-input" placeholder="例如：零食" class="flex-1 dark-input px-4 py-4 text-xs">
-                    <button onclick="quickAddTag('C')" class="bg-zinc-800 text-white px-6 rounded-xl text-[10px] font-black uppercase border border-white/10">新增</button>
-                </div>
-                <div id="edit-cats-list" class="flex flex-wrap"></div>
-            </div>
-            
-            <p class="text-center text-[10px] text-white/10 pt-10">點擊標籤旁的 ✕ 即可移除</p>
+  return (
+    <div className="min-h-screen bg-[#050505] text-white pb-40 font-sans selection:bg-white selection:text-black">
+      <header className="sticky top-0 z-40 bg-black/90 backdrop-blur-3xl border-b border-white/5 px-6 py-7">
+        <div className="max-w-xl mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-black tracking-[0.25em] text-white/95 uppercase">
+            My購了沒<span className="ml-1 opacity-70 lowercase">(˶˙๏˙˶)b</span>
+          </h1>
+          <button onClick={() => setShowSettings(true)} className="p-3 bg-white/5 rounded-full border border-white/10 active:scale-90 transition-all hover:bg-white/10">
+            <Settings size={20} />
+          </button>
         </div>
-    </div>
+      </header>
 
-    <!-- 導覽列 -->
-    <nav class="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5 p-6">
-        <div class="max-w-xl mx-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-lg wide-title">My購了沒(˶˙๏˙˶)b</h1>
-                <div class="flex gap-2">
-                    <button onclick="openModal()" class="p-2 opacity-50 active:opacity-100 transition-opacity">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    </button>
-                    <button onclick="cloudSync()" class="p-2 opacity-50 active:opacity-100 transition-opacity">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a3.5 3.5 0 0 0 0-7h-1.5a7 7 0 1 0-11.8 4.5"/><path d="M12 13v9"/><path d="m9 16 3-3 3 3"/></svg>
-                    </button>
-                </div>
-            </div>
-            <div id="ex-rate" class="text-[9px] text-white/20 font-mono tracking-tighter mb-4">Rates: Local Cache</div>
-            <div class="flex gap-10">
-                <div><p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1">已花費</p><p class="text-2xl font-black" id="total-spent">$0</p></div>
-                <div><p class="text-[8px] font-bold text-white/40 uppercase tracking-widest mb-1 text-zinc-600">待購中</p><p class="text-2xl font-black text-white/20" id="total-budget">$0</p></div>
-            </div>
-        </div>
-    </nav>
+      <main className="max-w-xl mx-auto px-5 pt-6 space-y-10">
+        <section className="flex gap-4">
+          <div className="flex-1 bg-zinc-900/60 p-6 rounded-[2.2rem] border border-white/10 shadow-xl">
+            <p className="text-[10px] font-black text-white/70 uppercase tracking-[0.3em] mb-2 drop-shadow-sm">已花費</p>
+            <p className="text-2xl font-black font-mono tracking-tight">${Math.round(stats.spent).toLocaleString()}</p>
+          </div>
+          <div className="flex-1 bg-zinc-900/20 p-6 rounded-[2.2rem] border border-white/5">
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-2 drop-shadow-sm">預計花費</p>
+            <p className="text-2xl font-black text-white/40 font-mono tracking-tight">${Math.round(stats.wish).toLocaleString()}</p>
+          </div>
+        </section>
 
-    <main class="max-w-xl mx-auto px-6 mt-8">
-        <div id="view-list" class="space-y-8">
-            <section class="space-y-5">
-                <div><p class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-2">對象 Target</p><div id="ui-targets" class="tag-scroll"></div></div>
-                <div><p class="text-[8px] font-bold text-white/20 uppercase tracking-widest mb-2">類別 Category</p><div id="ui-categories" class="tag-scroll"></div></div>
-                
-                <div class="flex gap-2">
-                    <select id="in-curr" class="dark-input px-3 py-4 text-[10px] font-bold"><option value="TWD">TWD</option><option value="KRW">KRW</option><option value="JPY">JPY</option><option value="USD">USD</option></select>
-                    <input type="text" id="in-name" placeholder="想買什麼？" class="flex-1 dark-input px-5 py-4 text-sm font-bold">
-                    <input type="number" id="in-price" placeholder="價格" class="w-24 dark-input px-5 py-4 text-sm font-black">
+        {view === 'list' && (
+          <>
+            <section className="space-y-6 bg-zinc-950/50 p-6 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden">
+              <div className="space-y-4">
+                <div className="overflow-x-auto no-scrollbar -my-1 py-3 px-1">
+                  <div className="flex gap-3">
+                    {targets.map(t => (
+                      <button 
+                        key={t} 
+                        onClick={() => setSelT(t)} 
+                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex-none transform ${selT === t ? 'bg-white text-black scale-110 shadow-[0_4px_12px_rgba(255,255,255,0.15)] z-10' : 'bg-white/5 text-white/30'}`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                
-                <div class="flex gap-2">
-                    <div onclick="document.getElementById('in-file').click()" id="ui-img-label" class="flex-1 bg-white/5 border border-dashed border-white/10 rounded-2xl flex items-center justify-center h-14 cursor-pointer text-[9px] text-white/20 font-bold">加入照片</div>
-                    <button id="add-btn" onclick="handleAdd()" class="bg-white text-black px-10 rounded-2xl font-black text-[10px] uppercase">新增</button>
+                <div className="overflow-x-auto no-scrollbar -my-1 py-3 px-1">
+                  <div className="flex gap-3">
+                    {cats.map(c => (
+                      <button 
+                        key={c} 
+                        onClick={() => setSelC(c)} 
+                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex-none transform ${selC === c ? 'bg-zinc-800 text-white border border-white/20 scale-110 shadow-xl z-10' : 'bg-white/5 text-white/30'}`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <input type="file" id="in-file" class="hidden" accept="image/*">
+              </div>
+              
+              <div className="space-y-4">
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="品項名稱..." className="w-full bg-white/5 border-none rounded-2xl py-5 px-6 text-sm font-black focus:ring-1 focus:ring-white/10 placeholder:text-white/10" />
+                <div className="flex bg-white/5 rounded-2xl px-5 items-center w-full overflow-hidden border border-transparent focus-within:border-white/10 transition-colors">
+                  <div className="flex-none pr-3 border-r border-white/5 py-3">
+                    <select value={currency} onChange={e => setCurrency(e.target.value)} className="bg-transparent border-none text-[11px] font-black focus:ring-0 pl-0 pr-2 text-white/60 uppercase tracking-widest cursor-pointer appearance-none">
+                      <option>TWD</option><option>KRW</option><option>JPY</option><option>USD</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="0" className="w-full bg-transparent border-none py-5 text-right font-black text-xl font-mono focus:ring-0 pr-1 placeholder:text-white/10" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => document.getElementById('cam-in').click()} className="flex-1 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-[10px] font-black uppercase text-white/40 gap-3 border border-white/5 active:bg-white/10 transition-colors">
+                  <Camera size={18} /> {img ? "已選照片" : "相機"}
+                </button>
+                <button onClick={handleSave} className={`px-14 h-16 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] active:scale-95 shadow-xl transition-all ${editingId ? 'bg-yellow-400 text-black' : 'bg-white text-black'}`}>
+                  {editingId ? "儲存" : "新增"}
+                </button>
+                <input type="file" id="cam-in" className="hidden" accept="image/*" onChange={(e) => {
+                  const f = e.target.files[0];
+                  if (f) { const r = new FileReader(); r.onload = (ev) => setImg(ev.target.result); r.readAsDataURL(f); }
+                }} />
+              </div>
+              {editingId && <button onClick={resetInputFields} className="w-full py-2 text-[9px] font-black text-white/20 uppercase tracking-widest hover:text-white transition-colors">取消編輯並返回新增</button>}
             </section>
-            <div id="item-list" class="space-y-4 pb-10"></div>
-        </div>
 
-        <div id="view-stats" class="hidden py-4 space-y-8">
-            <div class="flex bg-zinc-900/50 p-1 rounded-full border border-white/5 max-w-[200px] mx-auto">
-                <button id="toggle-cat" onclick="setStatType('category')" class="flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all bg-white text-black">類別</button>
-                <button id="toggle-tar" onclick="setStatType('target')" class="flex-1 py-2 rounded-full text-[10px] font-black uppercase transition-all text-white/40">對象</button>
-            </div>
-            <div class="relative w-64 h-64 mx-auto">
-                <canvas id="stat-chart"></canvas>
-                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <div class="text-[8px] text-white/20 font-black uppercase tracking-widest">Spent</div>
-                    <div id="center-total" class="text-xl font-black">$0</div>
+            <div className="space-y-12 pt-10">
+              {items.map(item => (
+                <div key={item.id} className="bg-zinc-900/30 rounded-[2.8rem] border border-white/5 overflow-hidden shadow-lg shadow-black">
+                  <div className={`transition-opacity duration-500 ${item.bought ? 'opacity-30' : 'opacity-100'}`}>
+                    <div className="relative h-72 w-full bg-zinc-950 flex items-center justify-center overflow-hidden">
+                      {item.image ? <img src={item.image} className="w-full h-full object-cover" alt={item.name} /> : <div className="text-white/[0.03] font-black text-6xl uppercase tracking-widest">BUY</div>}
+                      <div className="absolute top-6 left-6 flex flex-wrap gap-2">
+                        <span className="bg-white/95 backdrop-blur-md text-black px-4 py-2 rounded-full text-[9px] font-black tracking-widest uppercase shadow-sm">{item.target}</span>
+                        <span className="bg-black/60 backdrop-blur-md text-white/80 px-4 py-2 rounded-full text-[9px] font-black tracking-widest uppercase border border-white/10 shadow-sm">{item.category}</span>
+                      </div>
+                    </div>
+                    <div className="px-8 pt-8 pb-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-2 flex-1 min-w-0">
+                          <h3 className="text-2xl font-black tracking-tight leading-tight truncate">{item.name}</h3>
+                          <div className="flex items-baseline gap-3">
+                            <span className="text-3xl font-mono font-black tracking-tighter">${Math.round(item.priceInTWD || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <button onClick={() => toggleBought(item)} className={`flex items-center gap-3 px-8 py-4 rounded-full text-[10px] font-black uppercase transition-all shadow-xl active:scale-95 whitespace-nowrap flex-none ${item.bought ? 'bg-white text-black' : 'bg-zinc-800 text-white/80 border border-white/10'}`}>
+                          {item.bought ? <CheckCircle2 size={16}/> : <Circle size={16}/>}
+                          {item.bought ? '已買' : '要買'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-8 pb-8">
+                    <div className="flex gap-3 pt-4 border-t border-white/[0.03]">
+                      <button onClick={() => {setEditingId(item.id); setName(item.name); setPrice(item.price.toString()); setCurrency(item.currency); setSelT(item.target); setSelC(item.category); setImg(item.image); window.scrollTo({top:0, behavior:'smooth'})}} className="flex-1 flex items-center justify-center gap-2 py-4 bg-white/[0.03] rounded-2xl text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all active:scale-95 border border-transparent hover:border-white/5">
+                        <Edit2 size={14}/> 編輯
+                      </button>
+                      <button onClick={() => handleLineShare(item)} className="flex-1 flex items-center justify-center gap-2 py-4 bg-green-500/10 rounded-2xl text-[9px] font-black uppercase tracking-widest text-green-400/80 hover:text-green-400 transition-all border border-green-500/5 active:scale-95">
+                        <Share2 size={14}/> LINE
+                      </button>
+                      <button onClick={() => setDeleteConfirmId(item.id)} className="flex-1 flex items-center justify-center gap-2 py-4 bg-red-500/10 rounded-2xl text-[9px] font-black uppercase tracking-widest text-red-400/80 hover:text-red-400 transition-all border border-red-500/5 active:scale-95">
+                        <Trash2 size={14}/> 刪除
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              ))}
             </div>
-            <div id="stat-list" class="space-y-6"></div>
-        </div>
-    </main>
+          </>
+        )}
 
-    <div class="fixed bottom-8 inset-x-0 flex justify-center z-50">
-        <div class="bg-zinc-900/90 backdrop-blur-2xl px-12 py-4 rounded-full border border-white/10 flex gap-20 shadow-2xl">
-            <button onclick="setTab('list')" id="nav-list" class="nav-btn active flex flex-col items-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="2"/></svg><div class="nav-indicator"></div></button>
-            <button onclick="setTab('stats')" id="nav-stats" class="nav-btn flex flex-col items-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="9"/></svg><div class="nav-indicator"></div></button>
+        {view === 'stats' && (
+          <div className="py-10 space-y-12 animate-in fade-in duration-500">
+            <div className="flex bg-white/5 p-2 rounded-3xl border border-white/5">
+              <button onClick={() => setStatMode('category')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] transition-all ${statMode === 'category' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/30 hover:text-white/60'}`}><Tag size={16} /> 按類別</button>
+              <button onClick={() => setStatMode('target')} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] transition-all ${statMode === 'target' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/30 hover:text-white/60'}`}><Users size={16} /> 按對象</button>
+            </div>
+            <div className="relative w-80 h-80 mx-auto">
+              <canvas ref={chartRef}></canvas>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.5em] mb-1">已購總計</p>
+                <p className="text-4xl font-black font-mono">${Math.round(stats.spent).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="space-y-6">
+              <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.6em] text-center mb-6">{statMode === 'category' ? '分類花費明細' : '對象花費明細'}</p>
+              <div className="space-y-3">
+                {Object.entries(stats.dataMap).sort((a,b) => b[1] - a[1]).map(([label, amount], i) => (
+                  <div key={label} className="bg-zinc-900/40 p-6 rounded-3xl border border-white/5 flex justify-between items-center transition-all hover:bg-zinc-900/60">
+                     <div className="flex items-center gap-4">
+                        <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{backgroundColor: ['#FFFFFF', '#D1D1D6', '#8E8E93', '#48484A', '#2C2C2E', '#636366', '#3A3A3C'][i % 7]}}></div>
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-black uppercase tracking-widest text-white/80">{label}</span>
+                          <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">佔比 {Math.round((amount / (stats.spent || 1)) * 100)}%</span>
+                        </div>
+                     </div>
+                     <span className="font-mono font-black text-lg">${Math.round(amount).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <nav className="fixed bottom-12 inset-x-0 flex justify-center z-50 px-6">
+        <div className="bg-black/80 backdrop-blur-3xl px-16 py-7 rounded-full border border-white/10 flex gap-28 shadow-2xl items-center">
+          <button onClick={() => setView('list')} className={`flex flex-col items-center gap-2 transition-colors ${view === 'list' ? 'text-white' : 'text-white/20'}`}><List size={24}/></button>
+          <button onClick={() => setView('stats')} className={`flex flex-col items-center gap-2 transition-colors ${view === 'stats' ? 'text-white' : 'text-white/20'}`}><BarChart2 size={24}/></button>
         </div>
+      </nav>
+
+      {/* 刪除確認框 */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-10">
+          <div className="bg-zinc-900 border border-white/10 p-10 rounded-[2.8rem] w-full max-w-sm space-y-8 text-center shadow-2xl">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500"><AlertCircle size={40} /></div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black tracking-widest uppercase">移除品項？</h3>
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">此動作無法復原</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button onClick={confirmDelete} className="py-5 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all">確認移除</button>
+              <button onClick={() => setDeleteConfirmId(null)} className="py-5 bg-white/5 text-white/60 rounded-2xl font-black text-xs uppercase tracking-[0.2em]">取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 設定 */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[100] bg-[#050505]/98 backdrop-blur-3xl flex flex-col p-10 overflow-y-auto">
+          <div className="max-w-md mx-auto w-full space-y-16 py-10">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-black tracking-[0.3em] uppercase">設定</h2>
+              <button onClick={() => setShowSettings(false)} className="bg-white text-black w-14 h-14 rounded-full flex items-center justify-center active:scale-90 shadow-lg"><X size={26}/></button>
+            </div>
+            <div className="space-y-8">
+              <div className="space-y-4">
+                 <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.6em] pl-1">對象標籤</p>
+                 <div className="flex flex-wrap gap-2">
+                    {targets.map(t => (
+                      <div key={t} className="bg-white/5 px-4 py-3 rounded-xl text-[11px] font-black flex items-center gap-3 border border-white/5">
+                        {t} <X size={14} className="text-white/20 cursor-pointer hover:text-red-500" onClick={() => updateTags(targets.filter(x => x!==t), cats)}/>
+                      </div>
+                    ))}
+                    <button onClick={() => {const n = prompt("新增對象："); if(n) updateTags([...targets, n], cats)}} className="px-5 py-3 rounded-xl text-[11px] font-black bg-white/10 text-white/40">+</button>
+                 </div>
+              </div>
+              <div className="space-y-4">
+                 <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.6em] pl-1">分類標籤</p>
+                 <div className="flex flex-wrap gap-2">
+                    {cats.map(c => (
+                      <div key={c} className="bg-white/5 px-4 py-3 rounded-xl text-[11px] font-black flex items-center gap-3 border border-white/5">
+                        {c} <X size={14} className="text-white/20 cursor-pointer hover:text-red-500" onClick={() => updateTags(targets, cats.filter(x => x!==c))}/>
+                      </div>
+                    ))}
+                    <button onClick={() => {const n = prompt("新增分類："); if(n) updateTags(targets, [...cats, n])}} className="px-5 py-3 rounded-xl text-[11px] font-black bg-white/10 text-white/40">+</button>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {shareLoading && (
+        <div className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white text-black px-10 py-5 rounded-full font-black text-[10px] uppercase tracking-[0.3em] animate-pulse">正在啟動 LINE 分享...</div>
+        </div>
+      )}
     </div>
-
-    <script type="module">
-        // --- 初始化狀態 (不論 Firebase 是否成功都可用) ---
-        let s = { 
-            items: JSON.parse(localStorage.getItem('my_items')) || [], 
-            targets: JSON.parse(localStorage.getItem('my_targets')) || ["自己", "家人", "朋友"], 
-            cats: JSON.parse(localStorage.getItem('my_cats')) || ["藥妝", "零食", "精品"], 
-            selT: "", selC: "", 
-            rates: JSON.parse(localStorage.getItem('my_rates')) || { KRW: 41, JPY: 4.6, USD: 0.03 }, 
-            img: null, chart: null, user: null, statType: 'category'
-        };
-        s.selT = s.targets[0]; s.selC = s.cats[0];
-
-        // --- 全域按鈕事件 ---
-        window.openModal = () => {
-            renderEditModalLists();
-            document.getElementById('modal-overlay').style.display = 'flex';
-        };
-        window.closeModal = () => document.getElementById('modal-overlay').style.display = 'none';
-        
-        window.quickAddTag = (type) => {
-            const input = document.getElementById(type === 'T' ? 'add-target-input' : 'add-cat-input');
-            const val = input.value.trim();
-            if(!val) return;
-            if(type === 'T' && !s.targets.includes(val)) s.targets.push(val);
-            if(type === 'C' && !s.cats.includes(val)) s.cats.push(val);
-            input.value = '';
-            saveLocal(); renderEditModalLists(); renderTagsUI();
-            if(window.dbInstance) syncSettingsToCloud();
-        };
-
-        window.removeTag = (type, val) => {
-            if(type === 'T') s.targets = s.targets.filter(x => x !== val);
-            if(type === 'C') s.cats = s.cats.filter(x => x !== val);
-            if(s.targets.length === 0) s.targets = ["未分類"];
-            if(s.cats.length === 0) s.cats = ["未分類"];
-            saveLocal(); renderEditModalLists(); renderTagsUI();
-            if(window.dbInstance) syncSettingsToCloud();
-        };
-
-        function renderEditModalLists() {
-            document.getElementById('edit-targets-list').innerHTML = s.targets.map(t => `<div class="edit-tag-item">${t}<span onclick="removeTag('T','${t}')" class="ml-2 opacity-30">✕</span></div>`).join('');
-            document.getElementById('edit-cats-list').innerHTML = s.cats.map(c => `<div class="edit-tag-item">${c}<span onclick="removeTag('C','${c}')" class="ml-2 opacity-30">✕</span></div>`).join('');
-        }
-
-        window.renderTagsUI = () => {
-            if(!s.targets.includes(s.selT)) s.selT = s.targets[0];
-            if(!s.cats.includes(s.selC)) s.selC = s.cats[0];
-            document.getElementById('ui-targets').innerHTML = s.targets.map(t => `<button onclick="selectTag('T','${t}')" class="tag-btn ${s.selT === t ? 'active' : ''}">${t}</button>`).join('');
-            document.getElementById('ui-categories').innerHTML = s.cats.map(c => `<button onclick="selectTag('C','${c}')" class="tag-btn ${s.selC === c ? 'active' : ''}">${c}</button>`).join('');
-        };
-
-        window.selectTag = (type, val) => { if(type === 'T') s.selT = val; else s.selC = val; renderTagsUI(); };
-
-        window.handleAdd = () => {
-            const nameEl = document.getElementById('in-name'), priceEl = document.getElementById('in-price');
-            const name = nameEl.value.trim(), price = parseFloat(priceEl.value) || 0, curr = document.getElementById('in-curr').value;
-            if(!name) return;
-            const twd = curr === 'TWD' ? price : (price / (s.rates[curr] || 1));
-            const newItem = { id: "it_"+Date.now(), name, price, currency: curr, target: s.selT, category: s.selC, priceInTWD: twd, image: s.img, bought: false, createdAt: Date.now() };
-            s.items.unshift(newItem);
-            saveLocal(); renderListUI();
-            nameEl.value = ''; priceEl.value = ''; s.img = null; document.getElementById('ui-img-label').innerText = '加入照片';
-            if(window.dbInstance) {
-                const { doc, setDoc } = window.firebaseFirestore;
-                setDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items', newItem.id), newItem);
-            }
-        };
-
-        window.renderListUI = () => {
-            let sT = 0, bT = 0;
-            const html = [...s.items].sort((a,b) => a.bought ? 1 : -1).map(i => {
-                if(i.bought) sT += i.priceInTWD; else bT += i.priceInTWD;
-                return `<div class="item-card bg-zinc-900/40 border border-white/5 p-4 rounded-3xl flex items-center gap-4 ${i.bought ? 'opacity-20' : ''}">
-                    <div class="w-14 h-14 bg-white/5 rounded-2xl overflow-hidden flex items-center justify-center shrink-0">
-                        ${i.image ? `<img src="${i.image}" class="w-full h-full object-cover">` : '<span class="text-[8px] opacity-10 font-bold">N/A</span>'}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex gap-1.5 mb-1.5"><span class="text-[7px] font-bold bg-white/10 px-1.5 py-0.5 rounded text-white/50">${i.target}</span><span class="text-[7px] font-bold bg-white/5 px-1.5 py-0.5 rounded text-white/30">${i.category}</span></div>
-                        <div class="text-sm font-bold truncate">${i.name}</div>
-                        <div class="text-[10px] font-mono opacity-20">${i.currency} ${i.price.toLocaleString()}</div>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="doToggle('${i.id}', ${i.bought})" class="px-5 py-2.5 rounded-full text-[9px] font-black ${i.bought ? 'bg-white text-black' : 'border border-white/10 text-white'}">${i.bought ? '已買' : '要買'}</button>
-                        <button onclick="doDel('${i.id}')" class="text-[8px] text-white/5">刪除</button>
-                    </div>
-                </div>`;
-            }).join('');
-            document.getElementById('item-list').innerHTML = html;
-            document.getElementById('total-spent').innerText = `$${Math.round(sT).toLocaleString()}`;
-            document.getElementById('total-budget').innerText = `$${Math.round(bT).toLocaleString()}`;
-        };
-
-        window.doToggle = (id, b) => {
-            const it = s.items.find(x => x.id === id); if(!it) return;
-            it.bought = !b; saveLocal(); renderListUI();
-            if(window.dbInstance) {
-                const { doc, updateDoc } = window.firebaseFirestore;
-                updateDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items', id), { bought: !b });
-            }
-        };
-        window.doDel = (id) => {
-            if(!confirm("確定刪除？")) return;
-            s.items = s.items.filter(x => x.id !== id); saveLocal(); renderListUI();
-            if(window.dbInstance) {
-                const { doc, deleteDoc } = window.firebaseFirestore;
-                deleteDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items', id));
-            }
-        };
-
-        function saveLocal() {
-            localStorage.setItem('my_items', JSON.stringify(s.items));
-            localStorage.setItem('my_targets', JSON.stringify(s.targets));
-            localStorage.setItem('my_cats', JSON.stringify(s.cats));
-        }
-
-        // --- 頁面與統計 ---
-        window.setTab = (t) => {
-            document.getElementById('view-list').classList.toggle('hidden', t !== 'list');
-            document.getElementById('view-stats').classList.toggle('hidden', t !== 'stats');
-            document.getElementById('nav-list').classList.toggle('active', t === 'list');
-            document.getElementById('nav-stats').classList.toggle('active', t === 'stats');
-            if(t === 'stats') renderChart();
-        };
-
-        window.setStatType = (type) => {
-            s.statType = type;
-            document.getElementById('toggle-cat').className = `flex-1 py-2 rounded-full text-[10px] font-black transition-all ${type==='category'?'bg-white text-black':'text-white/40'}`;
-            document.getElementById('toggle-tar').className = `flex-1 py-2 rounded-full text-[10px] font-black transition-all ${type==='target'?'bg-white text-black':'text-white/40'}`;
-            renderChart();
-        };
-
-        function renderChart() {
-            const dataMap = {}; let total = 0;
-            s.items.filter(i => i.bought).forEach(i => {
-                const l = i[s.statType] || "未分類";
-                dataMap[l] = (dataMap[l] || 0) + i.priceInTWD;
-                total += i.priceInTWD;
-            });
-            const labels = Object.keys(dataMap), values = Object.values(dataMap);
-            document.getElementById('stat-list').innerHTML = labels.map((l, i) => {
-                const p = total > 0 ? (values[i]/total*100).toFixed(0) : 0;
-                return `<div class="space-y-2">
-                    <div class="flex justify-between items-end"><div><span class="text-[9px] font-bold text-white/20 uppercase tracking-widest">${l}</span><div class="text-xs font-black">$${Math.round(values[i]).toLocaleString()}</div></div><span class="text-[10px] text-white/40">${p}%</span></div>
-                    <div class="h-[2px] w-full bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-white transition-all duration-700" style="width:${p}%"></div></div>
-                </div>`;
-            }).join('');
-            if(s.chart) s.chart.destroy();
-            s.chart = new Chart(document.getElementById('stat-chart'), {
-                type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor: ['#FFF', '#AAA', '#666', '#333'], borderWidth: 0 }] },
-                options: { cutout: '85%', plugins: { legend: { display: false } } }
-            });
-            document.getElementById('center-total').innerText = `$${Math.round(total).toLocaleString()}`;
-        }
-
-        // --- 匯率與圖片 ---
-        async function fetchRates() {
-            try {
-                const r = await fetch('https://open.er-api.com/v6/latest/TWD');
-                const d = await r.json(); s.rates = d.rates;
-                localStorage.setItem('my_rates', JSON.stringify(d.rates));
-                document.getElementById('ex-rate').innerText = `1 TWD ≈ JPY ${d.rates.JPY.toFixed(1)} / KRW ${d.rates.KRW.toFixed(0)}`;
-            } catch(e) { document.getElementById('ex-rate').innerText = "Rates: Offline Mode"; }
-        }
-        document.getElementById('in-file').onchange = (e) => {
-            const f = e.target.files[0]; if(!f) return;
-            const r = new FileReader();
-            r.onload = (ev) => {
-                const img = new Image(); img.src = ev.target.result;
-                img.onload = () => {
-                    const c = document.createElement('canvas'); const m = 200; let w = img.width, h = img.height;
-                    if(w>m) { h=h*(m/w); w=m; } c.width=w; c.height=h;
-                    c.getContext('2d').drawImage(img,0,0,w,h);
-                    s.img = c.toDataURL('image/jpeg', 0.5); document.getElementById('ui-img-label').innerText = 'PHOTO READY';
-                }
-            };
-            r.readAsDataURL(f);
-        };
-
-        // --- Firebase 安全加載 ---
-        async function loadFirebase() {
-            try {
-                const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-                const { getAuth, signInAnonymously, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-                const firestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-                const { getFirestore, doc, collection, getDocs, getDoc } = firestore;
-
-                const configStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-                const config = JSON.parse(configStr);
-                if(!config.apiKey) return;
-
-                window.appId = typeof __app_id !== 'undefined' ? __app_id : 'myshop-01';
-                window.firebaseFirestore = firestore;
-                const app = initializeApp(config);
-                const auth = getAuth(app);
-                window.dbInstance = getFirestore(app);
-
-                onAuthStateChanged(auth, async (u) => {
-                    if(u) {
-                        s.user = u;
-                        // 靜默同步
-                        const itemSnap = await getDocs(collection(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'items'));
-                        if(!itemSnap.empty) {
-                            s.items = itemSnap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=>b.createdAt - a.createdAt);
-                            saveLocal(); renderListUI();
-                        }
-                        const setSnap = await getDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'settings'));
-                        if(setSnap.exists()) {
-                            const d = setSnap.data();
-                            if(d.targets) s.targets = d.targets;
-                            if(d.categories) s.cats = d.categories;
-                            saveLocal(); renderTagsUI();
-                        }
-                    } else { await signInAnonymously(auth); }
-                });
-            } catch(e) { console.log("Cloud features disabled."); }
-        }
-
-        function syncSettingsToCloud() {
-            const { doc, setDoc } = window.firebaseFirestore;
-            setDoc(doc(window.dbInstance, 'artifacts', window.appId, 'public', 'data', 'settings'), { targets: s.targets, categories: s.cats }, { merge: true });
-        }
-
-        window.cloudSync = () => {
-            if(!window.dbInstance) return alert("Firebase Config Missing.");
-            document.getElementById('loading-overlay').style.display='flex';
-            loadFirebase().then(() => setTimeout(()=>document.getElementById('loading-overlay').style.display='none', 800));
-        };
-
-        // 啟動 UI
-        renderTagsUI();
-        renderListUI();
-        fetchRates();
-        loadFirebase();
-    </script>
-</body>
-</html>
+  );
+}
 
