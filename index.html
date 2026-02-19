@@ -2,24 +2,88 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>My購了沒(˶˙๏˙˶)b</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: black; margin: 0; color: white; overflow-x: hidden; }
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            box-sizing: border-box;
+        }
+        html, body { 
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Noto Sans TC', sans-serif; 
+            color: #fff;
+        }
+        .font-num { font-family: 'Inter', sans-serif; font-weight: 700; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        #root { min-height: 100vh; }
-        input, select, button { outline: none !important; }
-        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        /* 強制移除所有斜體繼承 */
-        * { font-style: normal !important; }
+        
+        input, select, textarea {
+            background-color: transparent !important;
+            border: none;
+            outline: none;
+            color: white;
+            -webkit-appearance: none;
+            user-select: text;
+        }
+
+        .scroll-container {
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 150px;
+        }
+
+        .sticky-summary {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            padding-top: 15px;
+            padding-bottom: 20px;
+        }
+
+        .nav-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tag-pink { background: #ff7eb9; color: #000; }
+        .tag-blue { background: #7ee8ff; color: #000; }
+        .tag-purple { background: #b97eff; color: #000; }
+        .tag-gray { background: rgba(255, 255, 255, 0.2); color: #fff; }
+
+        .empty-watermark {
+            position: fixed;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+            z-index: -1;
+            pointer-events: none;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .action-button:active {
+            transform: scale(0.92);
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -29,362 +93,218 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         const Icons = {
-            Settings: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-            List: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
-            BarChart2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-            Camera: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
-            CheckCircle2: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>,
-            Circle: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>,
-            X: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Camera: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+            Check: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            List: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="0.8" fill="currentColor"/><circle cx="4" cy="12" r="0.8" fill="currentColor"/><circle cx="4" cy="18" r="0.8" fill="currentColor"/></svg>,
+            Stats: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="20" x2="6" y2="8" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="18" y1="20" x2="18" y2="14" /></svg>,
+            Tag: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1"/></svg>,
+            Plus: ({size=22}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            X: ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Edit: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+            Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         };
 
         const App = () => {
-            const [view, setView] = useState('list'); 
-            const [statMode, setStatMode] = useState('category'); 
+            const [view, setView] = useState('list');
             const [items, setItems] = useState([]);
-            const [targets, setTargets] = useState(["自己", "家人", "朋友"]);
-            const [cats, setCats] = useState(["藥妝", "零食", "精品"]);
-            const [newTargetInput, setNewTargetInput] = useState("");
-            const [newCatInput, setNewCatInput] = useState("");
-            const [selT, setSelT] = useState("自己");
-            const [selC, setSelC] = useState("藥妝");
+            const [editingId, setEditingId] = useState(null);
+            const [showTags, setShowTags] = useState(false);
             const [name, setName] = useState("");
             const [price, setPrice] = useState("");
             const [currency, setCurrency] = useState("TWD");
             const [img, setImg] = useState(null);
-            const [editingId, setEditingId] = useState(null);
-            const [rates, setRates] = useState({ KRW: 41, JPY: 4.6, USD: 0.031 });
-            const [showSettings, setShowSettings] = useState(false);
-            const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+            const [selT, setSelT] = useState("自己");
+            const [selC, setSelC] = useState("藥妝");
+            const [targets, setTargets] = useState(["自己", "家人", "朋友"]);
+            const [categories, setCategories] = useState(["藥妝", "服飾", "零食", "電器"]);
+            
+            const rates = { JPY: 0.211, KRW: 0.0238 };
+            const scrollRef = useRef(null);
 
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-
-            // 1. 初始化讀取 LocalStorage
             useEffect(() => {
-                const localItems = localStorage.getItem('tako_v2_items');
-                if (localItems) setItems(JSON.parse(localItems));
-                
-                const localTags = localStorage.getItem('tako_v2_tags');
-                if (localTags) {
-                    const d = JSON.parse(localTags);
-                    if (d.targets) setTargets(d.targets);
-                    if (d.cats) setCats(d.cats);
+                const savedItems = localStorage.getItem('mybuy_v11_items');
+                const savedTags = localStorage.getItem('mybuy_v11_tags');
+                if (savedItems) setItems(JSON.parse(savedItems));
+                if (savedTags) {
+                    const parsed = JSON.parse(savedTags);
+                    if(parsed.t) setTargets(parsed.t);
+                    if(parsed.c) setCategories(parsed.c);
                 }
-                
-                // 匯率更新
-                fetch('https://open.er-api.com/v6/latest/TWD')
-                    .then(r => r.json())
-                    .then(d => setRates(d.rates))
-                    .catch(() => console.log("匯率更新失敗"));
             }, []);
 
-            // 2. 存入 LocalStorage
-            useEffect(() => {
-                localStorage.setItem('tako_v2_items', JSON.stringify(items));
-            }, [items]);
+            useEffect(() => { 
+                localStorage.setItem('mybuy_v11_items', JSON.stringify(items));
+                localStorage.setItem('mybuy_v11_tags', JSON.stringify({ t: targets, c: categories }));
+            }, [items, targets, categories]);
 
-            const saveTagsToLocal = (newT, newC) => {
-                localStorage.setItem('tako_v2_tags', JSON.stringify({ targets: newT, cats: newC }));
-            };
-
-            const handleAddTarget = () => {
-                if (!newTargetInput.trim()) return;
-                const newList = [...targets, newTargetInput.trim()];
-                setTargets(newList);
-                saveTagsToLocal(newList, cats);
-                setNewTargetInput("");
-            };
-
-            const handleAddCat = () => {
-                if (!newCatInput.trim()) return;
-                const newList = [...cats, newCatInput.trim()];
-                setCats(newList);
-                saveTagsToLocal(targets, newList);
-                setNewCatInput("");
+            const getTWD = (item) => {
+                let rate = 1;
+                if (item.currency === 'JPY') rate = rates.JPY;
+                if (item.currency === 'KRW') rate = rates.KRW;
+                return (parseFloat(item.price) || 0) * rate;
             };
 
             const stats = useMemo(() => {
-                const boughtItems = items.filter(i => i.bought);
-                const dataMap = {};
-                const key = statMode === 'category' ? 'category' : 'target';
-                boughtItems.forEach(item => {
-                    const val = item[key] || "未分類";
-                    dataMap[val] = (dataMap[val] || 0) + (item.priceInTWD || 0);
-                });
-                return { dataMap, total: Object.values(dataMap).reduce((a, b) => a + b, 0) };
-            }, [items, statMode]);
+                const bought = items.filter(i => i.bought).reduce((acc, i) => acc + getTWD(i), 0);
+                const planned = items.filter(i => !i.bought).reduce((acc, i) => acc + getTWD(i), 0);
+                return { bought, planned };
+            }, [items]);
 
-            useEffect(() => {
-                if (view === 'stats' && chartRef.current && Object.keys(stats.dataMap).length > 0) {
-                    const ctx = chartRef.current.getContext('2d');
-                    if (chartInstance.current) chartInstance.current.destroy();
-                    chartInstance.current = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: Object.keys(stats.dataMap),
-                            datasets: [{
-                                data: Object.values(stats.dataMap),
-                                backgroundColor: ['#FFFFFF', '#D1D1D6', '#8E8E93', '#48484A', '#2C2C2E', '#636366'],
-                                borderWidth: 0
-                            }]
-                        },
-                        options: { cutout: '70%', plugins: { legend: { display: false } }, maintainAspectRatio: false }
-                    });
-                }
-            }, [view, stats]);
-
-            const handleSaveItem = () => {
+            const handleSubmit = () => {
                 if (!name.trim()) return;
-                const p = parseFloat(price) || 0;
-                const twd = currency === 'TWD' ? p : (p / (rates[currency] || 1));
-                const data = { 
-                    name: name.trim(), 
-                    price: p, 
-                    currency, 
-                    target: selT, 
-                    category: selC, 
-                    priceInTWD: twd, 
-                    image: img, 
-                    updatedAt: Date.now() 
-                };
-                
                 if (editingId) {
-                    setItems(items.map(i => i.id === editingId ? { ...i, ...data } : i));
+                    setItems(prev => prev.map(i => i.id === editingId ? { ...i, name: name.trim(), price: parseFloat(price) || 0, currency, target: selT, category: selC, image: img } : i));
+                    setEditingId(null);
                 } else {
-                    const newItem = { 
-                        ...data, 
-                        id: Date.now().toString(), 
-                        bought: false, 
-                        createdAt: Date.now() 
-                    };
-                    setItems([newItem, ...items]);
+                    setItems(prev => [{ id: Date.now().toString(), name: name.trim(), price: parseFloat(price) || 0, currency, target: selT, category: selC, image: img, bought: false }, ...prev]);
                 }
-                setName(""); setPrice(""); setImg(null); setEditingId(null);
+                setName(""); setPrice(""); setImg(null);
             };
 
-            const handleToggleBought = (id) => {
-                setItems(items.map(i => i.id === id ? { ...i, bought: !i.bought } : i));
+            const handleResetData = () => {
+                // 直接清空項目列表
+                setItems([]);
+                setEditingId(null);
+                setName(""); setPrice(""); setImg(null);
+                setShowTags(false);
             };
 
             const handleDeleteItem = (id) => {
-                setItems(items.filter(i => i.id !== id));
-                setDeleteConfirmId(null);
+                setItems(prev => prev.filter(i => i.id !== id));
+            };
+
+            const TagManager = ({ title, list, setList }) => {
+                const [val, setVal] = useState("");
+                return (
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase pl-1">{title}</p>
+                        <div className="flex flex-wrap gap-2">
+                            {list.map(tag => (
+                                <div key={tag} className="flex items-center bg-white/10 px-4 py-2 rounded-2xl gap-2">
+                                    <span className="text-xs font-bold">{tag}</span>
+                                    <div onTouchStart={() => setList(list.filter(l => l !== tag))} className="opacity-30 p-1"><Icons.X size={12}/></div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="relative flex items-center">
+                            <input value={val} onChange={e => setVal(e.target.value)} className="w-full bg-white/5 rounded-2xl px-5 py-4 text-sm font-bold pr-16 border border-white/10" placeholder="新增..." />
+                            <div onTouchStart={() => { if(val.trim()){ setList([...list, val.trim()]); setVal(""); }}} className="absolute right-2 w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center"><Icons.Plus size={18} /></div>
+                        </div>
+                    </div>
+                );
             };
 
             return (
-                <div className="min-h-screen bg-black text-white pb-32 font-sans antialiased">
-                    <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-b border-white/5 px-6 py-6">
-                        <div className="max-w-xl mx-auto flex justify-between items-center">
-                            <h1 className="text-xl font-black tracking-widest uppercase">My購了沒<span className="opacity-40 lowercase ml-1">(˶˙๏˙˶)b</span></h1>
-                            <button onClick={() => setShowSettings(true)} className="p-3 bg-white/5 rounded-full border border-white/10 active:scale-90 transition-all"><Icons.Settings /></button>
+                <div ref={scrollRef} className="scroll-container no-scrollbar">
+                    {!showTags && items.length === 0 && view === 'list' && <div className="empty-watermark">你沒有要買東西喔(˶˙๏˙˶)b</div>}
+                    <div className="w-full max-w-[90%] mx-auto pb-20">
+                        <header className="flex justify-between items-center pt-12 mb-4">
+                            <h1 className="text-xl font-[900] tracking-tighter">My購了沒 (˶˙๏˙˶)b</h1>
+                            <button onTouchStart={() => setShowTags(true)} className="w-12 h-12 nav-glass rounded-2xl flex items-center justify-center"><Icons.Tag /></button>
+                        </header>
+                        <div className="sticky-summary">
+                            <div className="grid grid-cols-2 gap-4 mb-3">
+                                <div className="text-center p-2">
+                                    <p className="text-[10px] opacity-40 font-black tracking-[0.2em] uppercase mb-1">已花費</p>
+                                    <p className="text-2xl font-num text-white tracking-tighter font-num"><span className="text-[10px] opacity-30 mr-1">NT$</span>{Math.round(stats.bought).toLocaleString()}</p>
+                                </div>
+                                <div className="text-center p-2 border-l border-white/5">
+                                    <p className="text-[10px] opacity-40 font-black tracking-[0.2em] uppercase mb-1">預定花費</p>
+                                    <p className="text-2xl font-num text-white tracking-tighter opacity-80 font-num"><span className="text-[10px] opacity-30 mr-1">NT$</span>{Math.round(stats.planned).toLocaleString()}</p>
+                                </div>
+                            </div>
                         </div>
-                    </header>
 
-                    <main className="max-w-xl mx-auto px-5 pt-6 space-y-8">
                         {view === 'list' ? (
-                            <>
-                                <section className="bg-zinc-900/40 p-6 rounded-[2.5rem] border border-white/10 space-y-6 shadow-2xl">
-                                    <div className="space-y-4">
-                                        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                                            {targets.map(t => (
-                                                <button key={t} onClick={() => setSelT(t)} className={`px-5 py-2.5 rounded-full text-[10px] font-black transition-all flex-none ${selT === t ? 'bg-white text-black' : 'bg-white/5 text-white/40'}`}>{t}</button>
-                                            ))}
+                            <div className="space-y-8 mt-6 pb-24">
+                                <section className="nav-glass rounded-[2.5rem] p-6 space-y-6">
+                                    <input value={name} onChange={e => setName(e.target.value)} className="w-full text-xl font-[900] placeholder:opacity-20" placeholder="想買什麼？" />
+                                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <span className="text-[9px] font-num opacity-30 tracking-widest uppercase">PRICE</span>
+                                            <input type="number" value={price} onChange={e => setPrice(e.target.value)} className="w-full text-2xl font-num" placeholder="0" />
                                         </div>
-                                        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                                            {cats.map(c => (
-                                                <button key={c} onClick={() => setSelC(c)} className={`px-5 py-2.5 rounded-full text-[10px] font-black transition-all flex-none ${selC === c ? 'bg-zinc-800 text-white border border-white/10' : 'bg-white/5 text-white/40'}`}>{c}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <input value={name} onChange={e => setName(e.target.value)} placeholder="想要買什麼..." className="w-full bg-white/5 border-none rounded-2xl py-4 px-6 text-sm font-black focus:ring-1 focus:ring-white/20 text-white" />
-                                    <div className="flex bg-white/5 rounded-2xl items-center overflow-hidden border border-white/5">
-                                        <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="金額" className="flex-1 bg-transparent border-none py-4 text-left font-black text-lg font-mono focus:ring-0 pl-6 text-white" />
-                                        <div className="h-8 w-px bg-white/10 ml-2"></div>
-                                        <select value={currency} onChange={e => setCurrency(e.target.value)} className="bg-transparent border-none text-[10px] font-black px-6 text-white focus:ring-0 uppercase cursor-pointer">
-                                            <option value="TWD" className="bg-zinc-900 text-white">TWD</option>
-                                            <option value="KRW" className="bg-zinc-900 text-white">KRW</option>
-                                            <option value="JPY" className="bg-zinc-900 text-white">JPY</option>
-                                            <option value="USD" className="bg-zinc-900 text-white">USD</option>
+                                        <select value={currency} onChange={e => setCurrency(e.target.value)} className="w-20 text-right text-sm font-black text-white">
+                                            <option value="TWD">TWD</option><option value="JPY">JPY</option><option value="KRW">KRW</option>
                                         </select>
                                     </div>
-                                    <div className="flex gap-3">
-                                        <button onClick={() => document.getElementById('cam-pure').click()} className="flex-1 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-[10px] font-black gap-2 border border-white/5 text-white">{img ? '✓ 已選照片' : <Icons.Camera size={18}/>}</button>
-                                        <button onClick={handleSaveItem} className="px-12 h-14 bg-white text-black rounded-2xl font-black text-[11px] tracking-widest uppercase active:scale-95 transition-transform">{editingId ? '儲存' : '新增'}</button>
+                                    <div className="space-y-4">
+                                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                                            {targets.map(t => <button key={t} onTouchStart={() => setSelT(t)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all flex-none uppercase ${selT === t ? 'bg-white text-black' : 'bg-white/5 text-white/30'}`}>{t}</button>)}
+                                        </div>
+                                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                                            {categories.map(c => <button key={c} onTouchStart={() => setSelC(c)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all flex-none uppercase ${selC === c ? 'bg-white/20 text-white' : 'bg-white/5 text-white/20'}`}>{c}</button>)}
+                                        </div>
                                     </div>
-                                    <input type="file" id="cam-pure" className="hidden" accept="image/*" onChange={e => {
-                                        const f = e.target.files[0];
-                                        if (f) { const r = new FileReader(); r.onload = ev => setImg(ev.target.result); r.readAsDataURL(f); }
-                                    }} />
+                                    <div className="flex gap-3 pt-2">
+                                        <button onTouchStart={() => document.getElementById('cam-btn').click()} className={`w-14 h-14 flex items-center justify-center rounded-2xl border border-white/10 ${img ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-white/5 opacity-30'}`}><Icons.Camera size={24}/></button>
+                                        <button onTouchStart={handleSubmit} className="flex-1 bg-white text-black text-[11px] font-black tracking-[0.4em] uppercase rounded-2xl">{editingId ? "更新項目" : "加入清單"}</button>
+                                        <input type="file" id="cam-btn" className="hidden" accept="image/*" onChange={e => { const f = e.target.files[0]; if (f) { const r = new FileReader(); r.onload = ev => setImg(ev.target.result); r.readAsDataURL(f); }}} />
+                                    </div>
                                 </section>
 
                                 <div className="space-y-6">
-                                    {items.length === 0 && (
-                                        <div className="py-20 text-center text-white/10 font-black text-2xl tracking-tighter">購物清單空空的</div>
-                                    )}
                                     {items.map(item => (
-                                        <div key={item.id} className="bg-zinc-900/30 rounded-[2.5rem] border border-white/5 overflow-hidden transition-all animate-pop">
-                                            <div className={`relative h-60 bg-zinc-950 flex items-center justify-center transition-opacity ${item.bought ? 'opacity-40 grayscale-[0.5]' : 'opacity-100'}`}>
-                                                {item.image ? <img src={item.image} className="w-full h-full object-cover" alt="" /> : <div className="text-white/5 font-black text-4xl">TAKO</div>}
-                                                <div className="absolute top-5 left-5 flex gap-2">
-                                                    <span className="bg-white/90 text-black px-3 py-1.5 rounded-full text-[8px] font-black uppercase">{item.target}</span>
-                                                    <span className="bg-black/40 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase border border-white/10">{item.category}</span>
+                                        <div key={item.id} className={`flex flex-col gap-3 p-1 rounded-3xl transition-all ${item.bought ? 'opacity-25 grayscale' : ''}`}>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-20 h-20 flex-none rounded-2xl overflow-hidden bg-white/5 border border-white/10 relative">
+                                                    {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Icons.Camera /></div>}
+                                                    {item.bought && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Icons.Check /></div>}
                                                 </div>
-                                            </div>
-                                            <div className="p-8 space-y-6">
-                                                <div className={`flex justify-between items-center transition-opacity ${item.bought ? 'opacity-40' : 'opacity-100'}`}>
-                                                    <div className="min-w-0">
-                                                        <h3 className="text-xl font-black truncate">{item.name}</h3>
-                                                        <p className="font-black text-white/60 text-sm mt-1 uppercase tracking-tight">
-                                                            ${Math.round(item.priceInTWD).toLocaleString()} TWD
-                                                        </p>
+                                                <div className="flex-1 min-w-0 pr-2">
+                                                    <div className="flex gap-1.5 mb-2">
+                                                        <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${item.target === '自己' ? 'tag-pink' : item.target === '家人' ? 'tag-blue' : item.target === '朋友' ? 'tag-purple' : 'tag-gray'}`}>{item.target}</span>
+                                                        <span className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-white/10 text-white/60 uppercase">{item.category}</span>
                                                     </div>
-                                                    <button onClick={() => handleToggleBought(item.id)} className={`p-4 rounded-full transition-all ${item.bought ? 'bg-white text-black' : 'bg-white/5 text-white/30 border border-white/5'}`}>
-                                                        {item.bought ? <Icons.CheckCircle2 size={24}/> : <Icons.Circle size={24}/>}
-                                                    </button>
+                                                    <h3 className="font-bold text-sm truncate mb-1">{item.name}</h3>
+                                                    <p className="text-xl font-num font-black text-white"><span className="text-[10px] opacity-30 mr-1.5 font-bold">{item.currency}</span>{item.price.toLocaleString()}</p>
                                                 </div>
-                                                <div className="flex gap-2 pt-4 border-t border-white/5">
-                                                    <button onClick={() => {setEditingId(item.id); setName(item.name); setPrice(item.price.toString()); setCurrency(item.currency); setSelT(item.target); setSelC(item.category); setImg(item.image); window.scrollTo({top:0, behavior:'smooth'})}} className="flex-1 py-3 bg-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest transition-colors active:scale-95">編輯</button>
-                                                    <button onClick={() => setDeleteConfirmId(item.id)} className="flex-1 py-3 bg-red-500/20 rounded-xl text-[9px] font-black text-red-500 uppercase tracking-widest transition-colors active:scale-95">刪除</button>
-                                                </div>
+                                                <button onTouchStart={() => setItems(prev => prev.map(i => i.id === item.id ? {...i, bought: !i.bought} : i))} className={`w-12 h-12 rounded-full flex-none flex items-center justify-center ${item.bought ? 'bg-white text-black' : 'border-2 border-white/10 text-white/20'}`}><Icons.Check /></button>
                                             </div>
+                                            {!item.bought && (
+                                                <div className="flex justify-end gap-6 px-4">
+                                                    <button onTouchStart={() => { setEditingId(item.id); setName(item.name); setPrice(item.price.toString()); setCurrency(item.currency); setImg(item.image); setSelT(item.target); setSelC(item.category); scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest"><Icons.Edit /> 編輯</button>
+                                                    <button onTouchStart={() => handleDeleteItem(item.id)} className="flex items-center gap-1.5 text-[10px] font-black text-red-500 uppercase tracking-widest"><Icons.Trash /> 刪除</button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
-                            </>
+                            </div>
                         ) : (
-                            <div className="space-y-10 animate-pop py-6">
-                                <div className="bg-zinc-900/50 p-1.5 rounded-full border border-white/10 flex">
-                                    <button onClick={() => setStatMode('category')} className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase transition-all ${statMode === 'category' ? 'bg-white text-black' : 'text-white/30'}`}>類別</button>
-                                    <button onClick={() => setStatMode('target')} className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase transition-all ${statMode === 'target' ? 'bg-white text-black' : 'text-white/30'}`}>對象</button>
-                                </div>
-                                <div className="relative h-72 flex items-center justify-center">
-                                    {Object.keys(stats.dataMap).length > 0 ? (
-                                        <>
-                                            <canvas ref={chartRef}></canvas>
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                                <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">總計花費</p>
-                                                <p className="text-2xl font-black mt-1 text-white">${Math.round(stats.total).toLocaleString()}</p>
-                                            </div>
-                                        </>
-                                    ) : <div className="text-white/20 font-black">尚無數據</div>}
-                                </div>
-                                <div className="space-y-3">
-                                    {Object.entries(stats.dataMap).map(([label, val]) => (
-                                        <div key={label} className="flex justify-between items-center p-6 bg-zinc-900/40 rounded-3xl border border-white/5">
-                                            <span className="text-[11px] font-black uppercase text-white/60 tracking-widest">{label}</span>
-                                            <span className="font-black text-lg text-white">${Math.round(val).toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="py-20 text-center uppercase opacity-20 text-[10px] font-black tracking-widest">
+                                先新增點東西再來看統計ㄅ (˶˙๏˙˶)b
                             </div>
                         )}
-                    </main>
-
-                    <nav className="fixed bottom-10 inset-x-0 flex justify-center z-30">
-                        <div className="bg-black/90 backdrop-blur-2xl px-12 py-5 rounded-full border border-white/10 flex gap-20 shadow-2xl items-center">
-                            <button onClick={() => setView('list')} className={view === 'list' ? 'text-white' : 'text-white/20'}><Icons.List/></button>
-                            <button onClick={() => setView('stats')} className={view === 'stats' ? 'text-white' : 'text-white/20'}><Icons.BarChart2/></button>
-                        </div>
+                    </div>
+                    
+                    <nav className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-12 px-10 py-5 rounded-[2.5rem] nav-glass z-[80]">
+                        <div onTouchStart={() => {setView('list'); setShowTags(false);}} className={`p-1 ${view === 'list' && !showTags ? 'opacity-100 scale-125' : 'opacity-20'}`}><Icons.List/></div>
+                        <div onTouchStart={() => {setView('stats'); setShowTags(false);}} className={`p-1 ${view === 'stats' && !showTags ? 'opacity-100 scale-125' : 'opacity-20'}`}><Icons.Stats/></div>
                     </nav>
 
-                    {showSettings && (
-                        <div className="fixed inset-0 z-[100] bg-black p-10 overflow-y-auto animate-pop">
-                            <div className="max-w-md mx-auto space-y-12 pb-24">
-                                <div className="flex justify-between items-center">
-                                    <h2 className="text-2xl font-black tracking-widest text-white uppercase tracking-tighter">SETTINGS</h2>
-                                    <button onClick={() => setShowSettings(false)} className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center active:scale-90 transition-transform"><Icons.X/></button>
+                    {showTags && (
+                        <div className="fixed inset-0 z-[100] bg-black p-6 overflow-y-auto no-scrollbar">
+                            <div className="w-full max-w-[90%] mx-auto py-10">
+                                <div className="flex justify-between items-center mb-16">
+                                    <h2 className="text-3xl font-[900] tracking-tight">Tags</h2>
+                                    <button onTouchStart={() => setShowTags(false)} className="px-8 py-3 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest">完成</button>
                                 </div>
-                                <div className="space-y-10">
-                                    <div className="space-y-4">
-                                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">對象管理</p>
-                                        <div className="flex gap-2">
-                                            <input value={newTargetInput} onChange={e => setNewTargetInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddTarget()} className="flex-1 bg-white/5 rounded-xl border border-white/5 p-4 text-xs font-black text-white" placeholder="新增對象名稱..." />
-                                            <button onClick={handleAddTarget} className="bg-white text-black px-6 rounded-xl font-black active:scale-95">+</button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 pt-2">
-                                            {targets.map(t => (
-                                                <div key={t} className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-black flex items-center gap-3">
-                                                    <span>{t}</span>
-                                                    <button onClick={() => {const n = targets.filter(x => x !== t); setTargets(n); saveTagsToLocal(n, cats);}} className="text-red-500 opacity-60 hover:opacity-100">✕</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">分類管理</p>
-                                        <div className="flex gap-2">
-                                            <input value={newCatInput} onChange={e => setNewCatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCat()} className="flex-1 bg-white/5 rounded-xl border border-white/5 p-4 text-xs font-black text-white" placeholder="新增分類名稱..." />
-                                            <button onClick={handleAddCat} className="bg-white text-black px-6 rounded-xl font-black active:scale-95">+</button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 pt-2">
-                                            {cats.map(c => (
-                                                <div key={c} className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-black flex items-center gap-3">
-                                                    <span>{c}</span>
-                                                    <button onClick={() => {const n = cats.filter(x => x !== c); setCats(n); saveTagsToLocal(targets, n);}} className="text-red-500 opacity-60 hover:opacity-100">✕</button>
-                                                </div>
-                                            ))}
+                                <div className="space-y-14">
+                                    <TagManager title="對象分類 (Who)" list={targets} setList={setTargets} />
+                                    <TagManager title="物品分類 (What)" list={categories} setList={setCategories} />
+                                    <div className="pt-10 pb-10">
+                                        <p className="text-[10px] font-black text-red-500 tracking-[0.3em] uppercase mb-4">危險區域</p>
+                                        <div className="border border-red-500/20 rounded-[2rem] p-8 text-center space-y-4">
+                                            <p className="text-[11px] text-red-500/70 font-bold leading-relaxed">此操作將清空所有購物清單項目。</p>
+                                            <button 
+                                                onTouchStart={handleResetData}
+                                                className="w-full py-5 rounded-2xl bg-red-600/10 text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-500/20"
+                                            >
+                                                RESET ALL ITEMS
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="pt-10">
-                                        <p className="text-[10px] font-black text-white/20 text-center uppercase">本地儲存模式 (LocalStorage)</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {deleteConfirmId && (
-                        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-6 text-center">
-                            <div className="bg-zinc-900 p-10 rounded-[2.5rem] border border-white/10 w-full max-w-xs space-y-8 shadow-2xl animate-pop">
-                                <p className="font-black uppercase tracking-widest text-sm text-white">確認刪除該品項？</p>
-                                <div className="flex flex-col gap-3">
-                                    <button onClick={() => handleDeleteItem(deleteConfirmId)} className="py-5 bg-red-500 text-white rounded-2xl font-black text-[10px] uppercase active:scale-95 transition-transform">刪除</button>
-                                    <button onClick={() => setDeleteConfirmId(null)} className="py-5 bg-white/5 text-white/40 rounded-2xl font-black text-[10px] uppercase active:scale-95 transition-transform">取消</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
-
-
-                                    </div>
-                                    <div className="space-y-4">
-                                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">分類管理 (CATEGORIES)</p>
-                                        <div className="flex gap-2">
-                                            <input value={newCatInput} onChange={e => setNewCatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCat()} className="flex-1 bg-white/5 rounded-xl border border-white/5 p-4 text-xs font-black text-white" placeholder="新增分類名稱..." />
-                                            <button onClick={handleAddCat} className="bg-white text-black px-6 rounded-xl font-black active:scale-95">+</button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 pt-2">
-                                            {cats.map(c => (
-                                                <div key={c} className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-lg text-[10px] font-black flex items-center gap-3">
-                                                    <span>{c}</span>
-                                                    <button onClick={() => {const n = cats.filter(x => x !== c); setCats(n); saveTags(targets, n);}} className="text-red-500 opacity-60 hover:opacity-100">✕</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* DELETE CONFIRM */}
-                    {deleteConfirmId && (
-                        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-6 text-center">
-                            <div className="bg-zinc-900 p-10 rounded-[2.5rem] border border-white/10 w-full max-w-xs space-y-8 shadow-2xl animate-in zoom-in-95 duration-200">
-                                <p className="font-black uppercase tracking-widest text-sm text-white">確認刪除？</p>
-                                <div className="flex flex-col gap-3">
-                                    <button onClick={() => handleDeleteItem(deleteConfirmId)} className="py-5 bg-red-500 text-white rounded-2xl font-black text-[10px] uppercase active:scale-95 transition-transform">確認</button>
-                                    <button onClick={() => setDeleteConfirmId(null)} className="py-5 bg-white/5 text-white/40 rounded-2xl font-black text-[10px] uppercase active:scale-95 transition-transform">取消</button>
                                 </div>
                             </div>
                         </div>
