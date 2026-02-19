@@ -7,7 +7,7 @@
 <link rel="manifest" href="/site.webmanifest">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>My購了沒(˶˙๏˙˶)b</title>
+    <title>My購了沒(˶˙๏˙˶)？</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -280,7 +280,7 @@
 
             return (
                 <div ref={scrollRef} className="scroll-container no-scrollbar">
-                    {!showTags && items.length === 0 && view === 'list' && <div className="empty-watermark">(˶˙๏˙˶)b</div>}
+                    {!showTags && items.length === 0 && view === 'list' && <div className="empty-watermark">HI(˶˙๏˙˶)</div>}
                     <div className="w-full max-w-[90%] mx-auto pb-20">
                         <header className="flex justify-between items-center pt-12 mb-4">
                             <h1 className="text-xl font-[900] tracking-tighter">My購了沒 (˶˙๏˙˶)b</h1>
@@ -363,13 +363,13 @@
                             <div className="space-y-16 mt-10 pb-24">
                                 {stats.byTarget.length > 0 && (
                                     <div className="p-8 border border-white/5 rounded-[2.5rem]">
-                                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase mb-8 text-center">對象統計 (Who)</p>
+                                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase mb-8 text-center">依對象統計 (Who)</p>
                                         <PieChart data={stats.byTarget} />
                                     </div>
                                 )}
                                 {stats.byCategory.length > 0 && (
                                     <div className="p-8 border border-white/5 rounded-[2.5rem]">
-                                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase mb-8 text-center">分類統計 (What)</p>
+                                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase mb-8 text-center">依類別統計 (What)</p>
                                         <PieChart data={stats.byCategory} />
                                     </div>
                                 )}
