@@ -493,7 +493,7 @@ const App=()=>{
                                 onChange={e=>setNote(e.target.value)}
                                 rows="2"
                                 className="w-full text-sm font-bold resize-none"
-                                placeholder="想寫什麼就寫什麼"
+                                placeholder="想寫什麼就寫什麼啦.ᐟ.ᐟ"
                             ></textarea>
                         </div>
                     </div>
@@ -557,14 +557,14 @@ const App=()=>{
                         <p className="text-[10px] font-black opacity-30 tracking-[.3em] uppercase pl-1">資料備份與轉移</p>
                         <button onTouchStart={exportBackup} className="w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-[10px] font-black tracking-widest">📤 匯出全部資料</button>
                         <label className="block w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-center text-[10px] font-black tracking-widest">📥 匯入資料<input type="file" accept="application/json,.json" className="hidden" onChange={e=>{importBackup(e.target.files?.[0]);e.target.value='';}}/></label>
-                        <p className="text-[9px] opacity-30 leading-relaxed px-2">以此功能紀念王老師於2026.09.20在LINE的瀏覽器編輯清單</p>
+                        <p className="text-[9px] opacity-30 leading-relaxed px-2">以此功能紀念王老師於2026.09.20在LINE的瀏覽器編輯清單然後轉不出來(´⌯  ̫⌯`)</p>
                     </div>
                     <div className="pt-10 pb-10">
                         <p className="text-[10px] font-black text-red-500 tracking-[.3em] uppercase mb-4">危險區域.ᐟ‪.ᐟ</p>
                         <div className="border border-red-500/20 rounded-[2rem] p-8 text-center space-y-4">
                             <p className="text-[11px] text-red-500/70 font-bold leading-relaxed">此操作將清空所有購物清單項目及照片。</p>
                             <button onTouchStart={async()=>{
-                                const confirmed=window.confirm('確定要清空所有購物清單嗎？\\n啊我就怕你會按錯');
+                                const confirmed=window.confirm('確定要清空所有購物清單嗎？\n我再ven一次，按下去會清空所有ㄉ購物清單，你確定ㄇ');
                                 if(!confirmed)return;
                                 await clearAllImages();
                                 setItems([]);
