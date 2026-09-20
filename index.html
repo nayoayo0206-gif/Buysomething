@@ -600,7 +600,7 @@ const App=()=>{
                             </div>
                             <button onTouchStart={()=>setItems(prev=>prev.map(i=>i.id===item.id?{...i,bought:!i.bought}:i))} className={`w-12 h-12 rounded-full flex-none flex items-center justify-center ${item.bought?'bg-white text-black':'border-2 border-white/10 text-white/20'}`}><Icons.Check/></button>
                         </div>
-                        {!item.bought&&<div className="flex justify-end gap-6 px-4">
+                        {!item.bought&&<div className="flex justify-start gap-6 px-4">
                             <button onTouchStart={()=>startEdit(item)} className="flex items-center gap-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest"><Icons.Edit/> 編輯</button>
                             <button onTouchStart={()=>deleteItem(item)} className="flex items-center gap-1.5 text-[10px] font-black text-red-500 uppercase tracking-widest"><Icons.Trash/> 刪除</button>
                         </div>}
