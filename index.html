@@ -218,7 +218,16 @@ const App=()=>{
     const [targets,setTargets]=useState(["自己","家人","朋友"]);
     const [categories,setCategories]=useState(["藥妝","服飾","零食","電器"]);
     const [locations,setLocations]=useState([]);
-    const [rates,setRates]=useState({JPY:.21,KRW:.024});
+const [tagColors,setTagColors]=useState({
+    "自己":"#ff7eb9",
+    "家人":"#7ee8ff",
+    "朋友":"#b97eff",
+    "藥妝":"#b97eff",
+    "服飾":"#7ee8ff",
+    "零食":"#ffb86b",
+    "電器":"#7ee8ff"
+});
+const [rates,setRates]=useState({JPY:.21,KRW:.024});
     const [isKeyboardVisible,setIsKeyboardVisible]=useState(false);
     const [isMigrating,setIsMigrating]=useState(false);
     const [migrationDone,setMigrationDone]=useState(false);
@@ -320,12 +329,17 @@ const App=()=>{
                 target:item.target,category:item.category,location:item.location||"",note:item.note||"",imageId:item.imageId||null,bought:!!item.bought
             }));
             localStorage.setItem('mybuy_v13_items',JSON.stringify(lightItems));
-            localStorage.setItem('mybuy_v13_tags',JSON.stringify({t:targets,c:categories,l:locations}));
+            localStorage.setItem('mybuy_v13_tags',JSON.stringify({
+    t:targets,
+    c:categories,
+    l:locations,
+    colors:tagColors
+}));
         }catch(e){
             console.error('localStorage 儲存失敗',e);
             if(e.name==='QuotaExceededError')alert('儲存空間不足。照片已改用新的儲存方式，但舊資料可能仍佔用瀏覽器空間。');
         }
-    },[items,targets,categories,locations,migrationDone]);
+},[items,targets,categories,locations,tagColors,migrationDone]);
 
     /* 載入 IndexedDB 照片 */
     useEffect(()=>{
