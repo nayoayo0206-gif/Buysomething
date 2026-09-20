@@ -1,418 +1,521 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>My購了沒(˶˙๏˙˶)？</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
-        * {
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            box-sizing: border-box;
-        }
-        html, body { 
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Noto Sans TC', sans-serif; 
-            color: #fff;
-        }
-        .font-num { font-family: 'Inter', sans-serif; font-weight: 700; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        input, select, textarea {
-            background-color: transparent !important;
-            border: none;
-            outline: none;
-            color: white;
-            -webkit-appearance: none;
-            user-select: text;
-        }
-
-        .scroll-container {
-            height: 100vh;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 150px;
-        }
-
-        .sticky-summary {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            padding-top: 15px;
-            padding-bottom: 20px;
-        }
-
-        .nav-glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .tag-pink { background: #ff7eb9; color: #000; }
-        .tag-blue { background: #7ee8ff; color: #000; }
-        .tag-purple { background: #b97eff; color: #000; }
-        .tag-gray { background: rgba(255, 255, 255, 0.2); color: #fff; }
-
-        .empty-watermark {
-            position: fixed;
-            top: 55%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100%;
-            text-align: center;
-            z-index: -1;
-            pointer-events: none;
-            font-size: 60px;
-            opacity: 0.1;
-        }
-
-        .action-button:active {
-            transform: scale(0.92);
-            opacity: 0.7;
-        }
-
-        /* 圓餅圖動畫 */
-        @keyframes pie-show {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .pie-container { animation: pie-show 0.5s ease-out forwards; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>My購了沒(˶˙๏˙˶)？</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{ -webkit-tap-highlight-color:transparent; user-select:none; box-sizing:border-box; }
+html,body{position:fixed;width:100%;height:100%;overflow:hidden;background:#000;font-family:'Noto Sans TC',sans-serif;color:#fff}
+.font-num{font-family:'Inter',sans-serif;font-weight:700}
+.no-scrollbar::-webkit-scrollbar{display:none}
+input,select,textarea{background:transparent!important;border:none;outline:none;color:white;-webkit-appearance:none;user-select:text}
+.scroll-container{height:100vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:150px}
+.sticky-summary{position:sticky;top:0;z-index:40;background:rgba(0,0,0,.85);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);padding-top:15px;padding-bottom:20px}
+.nav-glass{background:rgba(255,255,255,.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1)}
+.tag-pink{background:#ff7eb9;color:#000}.tag-blue{background:#7ee8ff;color:#000}.tag-purple{background:#b97eff;color:#000}.tag-gray{background:rgba(255,255,255,.2);color:#fff}
+.empty-watermark{position:fixed;top:55%;left:50%;transform:translate(-50%,-50%);width:100%;text-align:center;z-index:-1;pointer-events:none;font-size:60px;opacity:.1}
+.action-button:active{transform:scale(.92);opacity:.7}
+@keyframes pie-show{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.pie-container{animation:pie-show .5s ease-out forwards}
+</style>
 </head>
 <body>
-    <div id="root"></div>
+<div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+<script type="text/babel">
+const {useState,useEffect,useMemo,useRef}=React;
 
-        const Icons = {
-            Camera: ({size=20}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
-            Check: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-            List: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="0.8" fill="currentColor"/><circle cx="4" cy="12" r="0.8" fill="currentColor"/><circle cx="4" cy="18" r="0.8" fill="currentColor"/></svg>,
-            Stats: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="20" x2="6" y2="8" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="18" y1="20" x2="18" y2="14" /></svg>,
-            Tag: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1"/></svg>,
-            Plus: ({size=22}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-            X: ({size=14}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-            Edit: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-            Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        };
+/* =========================
+   IndexedDB 圖片儲存
+   ========================= */
+const DB_NAME='MyBuyImageDB';
+const DB_VERSION=1;
+const STORE_NAME='images';
 
-        const PieChart = ({ data }) => {
-            const total = data.reduce((sum, item) => sum + item.value, 0);
-            let cumulativePercent = 0;
+const openImageDB=()=>new Promise((resolve,reject)=>{
+    const request=indexedDB.open(DB_NAME,DB_VERSION);
+    request.onupgradeneeded=()=>{
+        const db=request.result;
+        if(!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+    };
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+});
 
-            const getCoordinatesForPercent = (percent) => {
-                const x = Math.cos(2 * Math.PI * percent);
-                const y = Math.sin(2 * Math.PI * percent);
-                return [x, y];
+const saveImageToDB=async(blob,id=null)=>{
+    const db=await openImageDB();
+    return new Promise((resolve,reject)=>{
+        const imageId=id||crypto.randomUUID();
+        const tx=db.transaction(STORE_NAME,'readwrite');
+        tx.objectStore(STORE_NAME).put(blob,imageId);
+        tx.oncomplete=()=>{db.close();resolve(imageId)};
+        tx.onerror=()=>{db.close();reject(tx.error)};
+    });
+};
+
+const getImageFromDB=async(id)=>{
+    if(!id)return null;
+    try{
+        const db=await openImageDB();
+        return await new Promise((resolve,reject)=>{
+            const tx=db.transaction(STORE_NAME,'readonly');
+            const req=tx.objectStore(STORE_NAME).get(id);
+            req.onsuccess=()=>{
+                const blob=req.result;
+                db.close();
+                resolve(blob?URL.createObjectURL(blob):null);
             };
+            req.onerror=()=>{db.close();reject(req.error)};
+        });
+    }catch(e){console.error('讀取照片失敗',e);return null}
+};
 
-            if (total === 0) return null;
+const deleteImageFromDB=async(id)=>{
+    if(!id)return;
+    try{
+        const db=await openImageDB();
+        await new Promise((resolve,reject)=>{
+            const tx=db.transaction(STORE_NAME,'readwrite');
+            tx.objectStore(STORE_NAME).delete(id);
+            tx.oncomplete=resolve;
+            tx.onerror=()=>reject(tx.error);
+        });
+        db.close();
+    }catch(e){console.error('刪除照片失敗',e)}
+};
 
-            return (
-                <div className="flex flex-col items-center gap-8 py-4 pie-container">
-                    <svg viewBox="-1.2 -1.2 2.4 2.4" className="w-48 h-48 -rotate-90">
-                        {data.map((item, index) => {
-                            const [startX, startY] = getCoordinatesForPercent(cumulativePercent);
-                            const percent = item.value / total;
-                            cumulativePercent += percent;
-                            const [endX, endY] = getCoordinatesForPercent(cumulativePercent);
-                            const largeArcFlag = percent > 0.5 ? 1 : 0;
-                            const pathData = [
-                                `M ${startX} ${startY}`,
-                                `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`,
-                                `L 0 0`,
-                            ].join(' ');
+const clearAllImages=async()=>{
+    try{
+        const db=await openImageDB();
+        await new Promise((resolve,reject)=>{
+            const tx=db.transaction(STORE_NAME,'readwrite');
+            tx.objectStore(STORE_NAME).clear();
+            tx.oncomplete=resolve;
+            tx.onerror=()=>reject(tx.error);
+        });
+        db.close();
+    }catch(e){console.error('清除照片失敗',e)}
+};
 
-                            const colors = ['#ff7eb9', '#7ee8ff', '#b97eff', '#ffffff33', '#ffffff1a'];
-                            return <path key={index} d={pathData} fill={item.color || colors[index % colors.length]} />;
-                        })}
-                        <circle cx="0" cy="0" r="0.6" fill="#000" />
-                    </svg>
-                    <div className="w-full space-y-3">
-                        {data.map((item, index) => (
-                            <div key={index} className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: item.color || ['#ff7eb9', '#7ee8ff', '#b97eff', '#ffffff33', '#ffffff1a'][index % 5] }} />
-                                    <span className="text-[11px] font-bold opacity-60 uppercase tracking-widest">{item.name}</span>
-                                </div>
-                                <span className="text-[11px] font-num font-black">NT$ {Math.round(item.value).toLocaleString()}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
+/* =========================
+   圖片壓縮
+   ========================= */
+const compressImage=async(fileOrBlob)=>{
+    const sourceUrl=URL.createObjectURL(fileOrBlob);
+    try{
+        const image=await new Promise((resolve,reject)=>{
+            const img=new Image();
+            img.onload=()=>resolve(img);
+            img.onerror=reject;
+            img.src=sourceUrl;
+        });
+
+        const maxSize=1000;
+        let width=image.naturalWidth;
+        let height=image.naturalHeight;
+
+        if(width>maxSize||height>maxSize){
+            if(width>height){
+                height=Math.round(height*maxSize/width);
+                width=maxSize;
+            }else{
+                width=Math.round(width*maxSize/height);
+                height=maxSize;
+            }
+        }
+
+        const canvas=document.createElement('canvas');
+        canvas.width=width;
+        canvas.height=height;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(image,0,0,width,height);
+
+        return await new Promise((resolve,reject)=>{
+            canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('圖片壓縮失敗')),'image/jpeg',.72);
+        });
+    }finally{
+        URL.revokeObjectURL(sourceUrl);
+    }
+};
+
+/* 舊版 Base64 自動搬家 */
+const migrateOldImage=async(base64,imageId)=>{
+    if(!base64||!base64.startsWith('data:image'))return null;
+    try{
+        const response=await fetch(base64);
+        const blob=await response.blob();
+        const compressed=await compressImage(blob);
+        return await saveImageToDB(compressed,imageId);
+    }catch(e){
+        console.error('舊照片搬家失敗',e);
+        return null;
+    }
+};
+
+const Icons={
+Camera:({size=20})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+Check:()=> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+List:()=> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r=".8" fill="currentColor"/><circle cx="4" cy="12" r=".8" fill="currentColor"/><circle cx="4" cy="18" r=".8" fill="currentColor"/></svg>,
+Stats:()=> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="20" x2="6" y2="8"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>,
+Tag:()=> <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1"/></svg>,
+Plus:({size=22})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+X:({size=14})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+Edit:()=> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+Trash:()=> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+};
+
+const PieChart=({data})=>{
+    const total=data.reduce((s,i)=>s+i.value,0);
+    let cumulativePercent=0;
+    const getCoordinatesForPercent=percent=>[Math.cos(2*Math.PI*percent),Math.sin(2*Math.PI*percent)];
+    if(total===0)return null;
+    return <div className="flex flex-col items-center gap-8 py-4 pie-container">
+        <svg viewBox="-1.2 -1.2 2.4 2.4" className="w-48 h-48 -rotate-90">
+        {data.map((item,index)=>{
+            const [startX,startY]=getCoordinatesForPercent(cumulativePercent);
+            const percent=item.value/total;
+            cumulativePercent+=percent;
+            const [endX,endY]=getCoordinatesForPercent(cumulativePercent);
+            const largeArcFlag=percent>.5?1:0;
+            const pathData=[`M ${startX} ${startY}`,`A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`,'L 0 0'].join(' ');
+            const colors=['#ff7eb9','#7ee8ff','#b97eff','#ffffff33','#ffffff1a'];
+            return <path key={index} d={pathData} fill={item.color||colors[index%colors.length]}/>;
+        })}
+        <circle cx="0" cy="0" r=".6" fill="#000"/>
+        </svg>
+        <div className="w-full space-y-3">{data.map((item,index)=><div key={index} className="flex items-center justify-between">
+            <div className="flex items-center gap-3"><div className="w-2.5 h-2.5 rounded-full" style={{background:item.color||['#ff7eb9','#7ee8ff','#b97eff','#ffffff33','#ffffff1a'][index%5]}}/><span className="text-[11px] font-bold opacity-60 uppercase tracking-widest">{item.name}</span></div>
+            <span className="text-[11px] font-num font-black">NT$ {Math.round(item.value).toLocaleString()}</span>
+        </div>)}</div>
+    </div>
+};
+
+const App=()=>{
+    const [view,setView]=useState('list');
+    const [items,setItems]=useState([]);
+    const [itemsWithImages,setItemsWithImages]=useState([]);
+    const [editingId,setEditingId]=useState(null);
+    const [showTags,setShowTags]=useState(false);
+    const [name,setName]=useState("");
+    const [price,setPrice]=useState("");
+    const [currency,setCurrency]=useState("TWD");
+    const [img,setImg]=useState(null);
+    const [imageUrl,setImageUrl]=useState(null);
+    const [selT,setSelT]=useState("自己");
+    const [selC,setSelC]=useState("藥妝");
+    const [targets,setTargets]=useState(["自己","家人","朋友"]);
+    const [categories,setCategories]=useState(["藥妝","服飾","零食","電器"]);
+    const [rates,setRates]=useState({JPY:.21,KRW:.024});
+    const [isKeyboardVisible,setIsKeyboardVisible]=useState(false);
+    const [isMigrating,setIsMigrating]=useState(false);
+    const [migrationDone,setMigrationDone]=useState(false);
+    const scrollRef=useRef(null);
+
+    useEffect(()=>{
+        const handleResize=()=>setIsKeyboardVisible(window.innerHeight<500);
+        window.addEventListener('resize',handleResize);
+        return()=>window.removeEventListener('resize',handleResize);
+    },[]);
+
+    useEffect(()=>{
+        const fetchRates=async()=>{
+            try{
+                const res=await fetch('https://open.er-api.com/v6/latest/TWD');
+                const data=await res.json();
+                if(data?.rates)setRates({JPY:1/data.rates.JPY,KRW:1/data.rates.KRW});
+            }catch(e){console.error(e)}
         };
+        fetchRates();
+    },[]);
 
-        const App = () => {
-            const [view, setView] = useState('list');
-            const [items, setItems] = useState([]);
-            const [editingId, setEditingId] = useState(null);
-            const [showTags, setShowTags] = useState(false);
-            const [name, setName] = useState("");
-            const [price, setPrice] = useState("");
-            const [currency, setCurrency] = useState("TWD");
-            const [img, setImg] = useState(null);
-            const [selT, setSelT] = useState("自己");
-            const [selC, setSelC] = useState("藥妝");
-            const [targets, setTargets] = useState(["自己", "家人", "朋友"]);
-            const [categories, setCategories] = useState(["藥妝", "服飾", "零食", "電器"]);
-            const [rates, setRates] = useState({ JPY: 0.21, KRW: 0.024 });
-            const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-            
-            const scrollRef = useRef(null);
+    /* 載入資料 + 舊版照片自動搬家 */
+    useEffect(()=>{
+        let cancelled=false;
+        const loadAndMigrate=async()=>{
+            try{
+                const savedItems=localStorage.getItem('mybuy_v13_items');
+                const savedTags=localStorage.getItem('mybuy_v13_tags');
 
-            // 鍵盤偵測
-            useEffect(() => {
-                const handleResize = () => {
-                    const isVisible = window.innerHeight < 500;
-                    setIsKeyboardVisible(isVisible);
-                };
-                window.addEventListener('resize', handleResize);
-                return () => window.removeEventListener('resize', handleResize);
-            }, []);
+                if(savedTags){
+                    const parsed=JSON.parse(savedTags);
+                    if(parsed.t)setTargets(parsed.t);
+                    if(parsed.c)setCategories(parsed.c);
+                }
 
-            // 即時匯率
-            useEffect(() => {
-                const fetchRates = async () => {
-                    try {
-                        const res = await fetch('https://open.er-api.com/v6/latest/TWD');
-                        const data = await res.json();
-                        if (data?.rates) {
-                            setRates({ JPY: 1 / data.rates.JPY, KRW: 1 / data.rates.KRW });
+                if(!savedItems){
+                    if(!cancelled)setMigrationDone(true);
+                    return;
+                }
+
+                let parsedItems=JSON.parse(savedItems);
+                if(!Array.isArray(parsedItems))parsedItems=[];
+
+                const hasOld=parsedItems.some(item=>item.image&&typeof item.image==='string'&&item.image.startsWith('data:image'));
+
+                if(hasOld){
+                    setIsMigrating(true);
+                    const migrated=[];
+                    for(const item of parsedItems){
+                        if(item.imageId){
+                            migrated.push(item);
+                            continue;
                         }
-                    } catch (e) { console.error(e); }
-                };
-                fetchRates();
-            }, []);
-
-            useEffect(() => {
-                const savedItems = localStorage.getItem('mybuy_v13_items');
-                const savedTags = localStorage.getItem('mybuy_v13_tags');
-                if (savedItems) setItems(JSON.parse(savedItems));
-                if (savedTags) {
-                    const parsed = JSON.parse(savedTags);
-                    if(parsed.t) setTargets(parsed.t);
-                    if(parsed.c) setCategories(parsed.c);
+                        if(item.image&&typeof item.image==='string'&&item.image.startsWith('data:image')){
+                            const imageId=await migrateOldImage(item.image,`old-${item.id}`);
+                            migrated.push({
+                                id:item.id,name:item.name,price:item.price,currency:item.currency,
+                                target:item.target,category:item.category,imageId:imageId,bought:!!item.bought
+                            });
+                        }else{
+                            migrated.push({...item,imageId:null});
+                        }
+                    }
+                    parsedItems=migrated;
+                    localStorage.setItem('mybuy_v13_items',JSON.stringify(parsedItems));
+                    setMigrationDone(true);
+                    setIsMigrating(false);
+                }else{
+                    setMigrationDone(true);
                 }
-            }, []);
 
-            useEffect(() => { 
-                localStorage.setItem('mybuy_v13_items', JSON.stringify(items));
-                localStorage.setItem('mybuy_v13_tags', JSON.stringify({ t: targets, c: categories }));
-            }, [items, targets, categories]);
-
-            const getTWD = (item) => {
-                let r = 1;
-                if (item.currency === 'JPY') r = rates.JPY;
-                if (item.currency === 'KRW') r = rates.KRW;
-                return (parseFloat(item.price) || 0) * r;
-            };
-
-            const stats = useMemo(() => {
-                const b = items.filter(i => i.bought).reduce((acc, i) => acc + getTWD(i), 0);
-                const p = items.filter(i => !i.bought).reduce((acc, i) => acc + getTWD(i), 0);
-                
-                const byCat = categories.map(cat => ({
-                    name: cat,
-                    value: items.filter(i => i.category === cat).reduce((acc, i) => acc + getTWD(i), 0)
-                })).filter(x => x.value > 0);
-
-                const targetColors = { "自己": "#ff7eb9", "家人": "#7ee8ff", "朋友": "#b97eff" };
-                const byTar = targets.map(t => ({
-                    name: t,
-                    value: items.filter(i => i.target === t).reduce((acc, i) => acc + getTWD(i), 0),
-                    color: targetColors[t] || null
-                })).filter(x => x.value > 0);
-
-                return { bought: b, planned: p, byCategory: byCat, byTarget: byTar };
-            }, [items, rates, categories, targets]);
-
-            const handleSubmit = () => {
-                if (!name.trim()) return;
-                if (editingId) {
-                    setItems(prev => prev.map(i => i.id === editingId ? { ...i, name: name.trim(), price: parseFloat(price) || 0, currency, target: selT, category: selC, image: img } : i));
-                    setEditingId(null);
-                } else {
-                    setItems(prev => [{ id: Date.now().toString(), name: name.trim(), price: parseFloat(price) || 0, currency, target: selT, category: selC, image: img, bought: false }, ...prev]);
-                }
-                setName(""); setPrice(""); setImg(null);
-            };
-
-            const TagManager = ({ title, list, setList }) => {
-                const [val, setVal] = useState("");
-                return (
-                    <div className="space-y-4">
-                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase pl-1">{title}</p>
-                        <div className="flex flex-wrap gap-2">
-                            {list.map(tag => (
-                                <div key={tag} className="flex items-center bg-white/10 px-4 py-2 rounded-2xl gap-2">
-                                    <span className="text-xs font-bold">{tag}</span>
-                                    <div onTouchStart={() => setList(list.filter(l => l !== tag))} className="opacity-30 p-1"><Icons.X size={12}/></div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="relative flex items-center">
-                            <input value={val} onChange={e => setVal(e.target.value)} className="w-full bg-white/5 rounded-2xl px-5 py-4 text-sm font-bold pr-16 border border-white/10" placeholder="新增..." />
-                            <div onTouchStart={() => { if(val.trim()){ setList([...list, val.trim()]); setVal(""); }}} className="absolute right-2 w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center cursor-pointer"><Icons.Plus size={18} /></div>
-                        </div>
-                    </div>
-                );
-            };
-
-            return (
-                <div ref={scrollRef} className="scroll-container no-scrollbar">
-                    {!showTags && items.length === 0 && view === 'list' && <div className="empty-watermark">HI(˶˙๏˙˶)</div>}
-                    <div className="w-full max-w-[90%] mx-auto pb-20">
-                        <header className="flex justify-between items-center pt-12 mb-4">
-                            <h1 className="text-xl font-[900] tracking-tighter">My購了沒 (˶˙๏˙˶)b</h1>
-                            <button onTouchStart={() => setShowTags(true)} className="w-12 h-12 nav-glass rounded-2xl flex items-center justify-center"><Icons.Tag /></button>
-                        </header>
-                        <div className="sticky-summary">
-                            <div className="grid grid-cols-2 gap-4 mb-3">
-                                <div className="text-center p-2">
-                                    <p className="text-[10px] opacity-40 font-black tracking-[0.2em] uppercase mb-1">已花費</p>
-                                    <p className="text-2xl font-num text-white tracking-tighter"><span className="text-[10px] opacity-30 mr-1">NT$</span>{Math.round(stats.bought).toLocaleString()}</p>
-                                </div>
-                                <div className="text-center p-2 border-l border-white/5">
-                                    <p className="text-[10px] opacity-40 font-black tracking-[0.2em] uppercase mb-1">預定花費</p>
-                                    <p className="text-2xl font-num text-white tracking-tighter opacity-80"><span className="text-[10px] opacity-30 mr-1">NT$</span>{Math.round(stats.planned).toLocaleString()}</p>
-                                </div>
-                            </div>
-                            <div className="flex justify-center gap-6 opacity-30 text-[9px] font-num font-black uppercase tracking-[0.2em]">
-                                <span>JPY ➔ {rates.JPY.toFixed(4)}</span>
-                                <span>KRW ➔ {rates.KRW.toFixed(4)}</span>
-                            </div>
-                        </div>
-
-                        {view === 'list' ? (
-                            <div className="space-y-8 mt-6 pb-24">
-                                <section className="nav-glass rounded-[2.5rem] p-6 space-y-6">
-                                    <input value={name} onChange={e => setName(e.target.value)} className="w-full text-xl font-[900] placeholder:opacity-20" placeholder="要買什麼好咧？" />
-                                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                                        <div className="flex items-center gap-3 flex-1">
-                                            <span className="text-[9px] font-num opacity-30 tracking-widest uppercase">PRICE</span>
-                                            <input type="number" value={price} onChange={e => setPrice(e.target.value)} className="w-full text-2xl font-num" placeholder="0" />
-                                        </div>
-                                        <select value={currency} onChange={e => setCurrency(e.target.value)} className="w-20 text-right text-sm font-black text-white">
-                                            <option value="TWD">TWD</option><option value="JPY">JPY</option><option value="KRW">KRW</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                                            {targets.map(t => <button key={t} onTouchStart={() => setSelT(t)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all flex-none uppercase ${selT === t ? 'bg-white text-black' : 'bg-white/5 text-white/30'}`}>{t}</button>)}
-                                        </div>
-                                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                                            {categories.map(c => <button key={c} onTouchStart={() => setSelC(c)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all flex-none uppercase ${selC === c ? 'bg-white/20 text-white' : 'bg-white/5 text-white/20'}`}>{c}</button>)}
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-3 pt-2">
-                                        <button onTouchStart={() => document.getElementById('cam-btn').click()} className={`w-14 h-14 flex items-center justify-center rounded-2xl border border-white/10 ${img ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-white/5 opacity-30'}`}><Icons.Camera size={24}/></button>
-                                        <button onTouchStart={handleSubmit} className="flex-1 bg-white text-black text-[11px] font-black tracking-[0.4em] uppercase rounded-2xl">{editingId ? "更新項目" : "加入清單"}</button>
-                                        <input type="file" id="cam-btn" className="hidden" accept="image/*" onChange={e => { const f = e.target.files[0]; if (f) { const r = new FileReader(); r.onload = ev => setImg(ev.target.result); r.readAsDataURL(f); }}} />
-                                    </div>
-                                </section>
-
-                                <div className="space-y-6">
-                                    {items.map(item => (
-                                        <div key={item.id} className={`flex flex-col gap-3 p-1 rounded-3xl transition-all ${item.bought ? 'opacity-25 grayscale' : ''}`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-20 h-20 flex-none rounded-2xl overflow-hidden bg-white/5 border border-white/10 relative">
-                                                    {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Icons.Camera /></div>}
-                                                    {item.bought && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Icons.Check /></div>}
-                                                </div>
-                                                <div className="flex-1 min-w-0 pr-2">
-                                                    <div className="flex gap-1.5 mb-2">
-                                                        <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${item.target === '自己' ? 'tag-pink' : item.target === '家人' ? 'tag-blue' : item.target === '朋友' ? 'tag-purple' : 'tag-gray'}`}>{item.target}</span>
-                                                        <span className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-white/10 text-white/60 uppercase">{item.category}</span>
-                                                    </div>
-                                                    <h3 className="font-bold text-sm truncate mb-1">{item.name}</h3>
-                                                    <p className="text-xl font-num font-black text-white"><span className="text-[10px] opacity-30 mr-1.5 font-bold">{item.currency}</span>{item.price.toLocaleString()}</p>
-                                                </div>
-                                                <button onTouchStart={() => setItems(prev => prev.map(i => i.id === item.id ? {...i, bought: !i.bought} : i))} className={`w-12 h-12 rounded-full flex-none flex items-center justify-center ${item.bought ? 'bg-white text-black' : 'border-2 border-white/10 text-white/20'}`}><Icons.Check /></button>
-                                            </div>
-                                            {!item.bought && (
-                                                <div className="flex justify-end gap-6 px-4">
-                                                    <button onTouchStart={() => { setEditingId(item.id); setName(item.name); setPrice(item.price.toString()); setCurrency(item.currency); setImg(item.image); setSelT(item.target); setSelC(item.category); scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex items-center gap-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest"><Icons.Edit /> 編輯</button>
-                                                    <button onTouchStart={() => setItems(prev => prev.filter(i => i.id !== item.id))} className="flex items-center gap-1.5 text-[10px] font-black text-red-500 uppercase tracking-widest"><Icons.Trash /> 刪除</button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-16 mt-10 pb-24">
-                                {stats.byTarget.length > 0 && (
-                                    <div className="p-8 border border-white/5 rounded-[2.5rem]">
-                                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase mb-8 text-center">依對象統計 (Who)</p>
-                                        <PieChart data={stats.byTarget} />
-                                    </div>
-                                )}
-                                {stats.byCategory.length > 0 && (
-                                    <div className="p-8 border border-white/5 rounded-[2.5rem]">
-                                        <p className="text-[10px] font-black opacity-30 tracking-[0.3em] uppercase mb-8 text-center">依類別統計 (What)</p>
-                                        <PieChart data={stats.byCategory} />
-                                    </div>
-                                )}
-                                {items.length === 0 && <div className="py-20 text-center opacity-20 text-[10px] font-black tracking-widest">【尚未有資料(˶˙๏˙˶)】</div>}
-                            </div>
-                        )}
-                    </div>
-                    
-                    {!isKeyboardVisible && (
-                        <nav className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-12 px-10 py-5 rounded-[2.5rem] nav-glass z-[80]">
-                            <div onTouchStart={() => {setView('list'); setShowTags(false);}} className={`p-1 ${view === 'list' && !showTags ? 'opacity-100 scale-125' : 'opacity-20'}`}><Icons.List/></div>
-                            <div onTouchStart={() => {setView('stats'); setShowTags(false);}} className={`p-1 ${view === 'stats' && !showTags ? 'opacity-100 scale-125' : 'opacity-20'}`}><Icons.Stats/></div>
-                        </nav>
-                    )}
-
-                    {showTags && (
-                        <div className="fixed inset-0 z-[100] bg-black p-6 overflow-y-auto no-scrollbar">
-                            <div className="w-full max-w-[90%] mx-auto py-10">
-                                <div className="flex justify-between items-center mb-16">
-                                    <h2 className="text-3xl font-[900] tracking-tight">Tags</h2>
-                                    <button onTouchStart={() => setShowTags(false)} className="px-8 py-3 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest">完成</button>
-                                </div>
-                                <div className="space-y-14">
-                                    <TagManager title="對象ㄉ分類 (Who)" list={targets} setList={setTargets} />
-                                    <TagManager title="物品ㄉ分類 (What)" list={categories} setList={setCategories} />
-                                    <div className="pt-10 pb-10">
-                                        <p className="text-[10px] font-black text-red-500 tracking-[0.3em] uppercase mb-4">危險區域.ᐟ‪.ᐟ</p>
-                                        <div className="border border-red-500/20 rounded-[2rem] p-8 text-center space-y-4">
-                                            <p className="text-[11px] text-red-500/70 font-bold leading-relaxed">此操作將清空所有購物清單項目。</p>
-                                            <button onTouchStart={() => { setItems([]); setEditingId(null); setName(""); setPrice(""); setImg(null); setShowTags(false); }} className="w-full py-5 rounded-2xl bg-red-600/10 text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-500/20">RESET ALL ITEMS</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+                if(!cancelled)setItems(parsedItems);
+            }catch(e){
+                console.error('資料載入/搬家失敗',e);
+                setIsMigrating(false);
+                setMigrationDone(true);
+            }
         };
+        loadAndMigrate();
+        return()=>{cancelled=true};
+    },[]);
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+    /* 每次資料改變，只把輕量資料存 localStorage */
+    useEffect(()=>{
+        if(!migrationDone)return;
+        try{
+            const lightItems=items.map(item=>({
+                id:item.id,name:item.name,price:item.price,currency:item.currency,
+                target:item.target,category:item.category,imageId:item.imageId||null,bought:!!item.bought
+            }));
+            localStorage.setItem('mybuy_v13_items',JSON.stringify(lightItems));
+            localStorage.setItem('mybuy_v13_tags',JSON.stringify({t:targets,c:categories}));
+        }catch(e){
+            console.error('localStorage 儲存失敗',e);
+            if(e.name==='QuotaExceededError')alert('儲存空間不足。照片已改用新的儲存方式，但舊資料可能仍佔用瀏覽器空間。');
+        }
+    },[items,targets,categories,migrationDone]);
+
+    /* 載入 IndexedDB 照片 */
+    useEffect(()=>{
+        let cancelled=false;
+        const loadImages=async()=>{
+            const result=await Promise.all(items.map(async item=>{
+                const url=item.imageId?await getImageFromDB(item.imageId):null;
+                return {...item,imageUrl:url};
+            }));
+            if(!cancelled)setItemsWithImages(result);
+        };
+        loadImages();
+        return()=>{cancelled=true};
+    },[items]);
+
+    const getTWD=item=>{
+        let r=1;
+        if(item.currency==='JPY')r=rates.JPY;
+        if(item.currency==='KRW')r=rates.KRW;
+        return(parseFloat(item.price)||0)*r;
+    };
+
+    const stats=useMemo(()=>{
+        const b=items.filter(i=>i.bought).reduce((a,i)=>a+getTWD(i),0);
+        const p=items.filter(i=>!i.bought).reduce((a,i)=>a+getTWD(i),0);
+        const byCat=categories.map(cat=>({name:cat,value:items.filter(i=>i.category===cat).reduce((a,i)=>a+getTWD(i),0)})).filter(x=>x.value>0);
+        const targetColors={"自己":"#ff7eb9","家人":"#7ee8ff","朋友":"#b97eff"};
+        const byTar=targets.map(t=>({name:t,value:items.filter(i=>i.target===t).reduce((a,i)=>a+getTWD(i),0),color:targetColors[t]||null})).filter(x=>x.value>0);
+        return{bought:b,planned:p,byCategory:byCat,byTarget:byTar};
+    },[items,rates,categories,targets]);
+
+    const handleImageUpload=async file=>{
+        if(!file)return;
+        try{
+            const blob=await compressImage(file);
+            const imageId=await saveImageToDB(blob);
+            setImg(imageId);
+            setImageUrl(URL.createObjectURL(blob));
+        }catch(e){
+            console.error(e);
+            alert('照片儲存失敗，請再試一次。');
+        }
+    };
+
+    const handleSubmit=()=>{
+        if(!name.trim())return;
+
+        if(editingId){
+            setItems(prev=>prev.map(i=>i.id===editingId?{
+                ...i,name:name.trim(),price:parseFloat(price)||0,currency,target:selT,category:selC,imageId:img||null
+            }:i));
+            setEditingId(null);
+        }else{
+            setItems(prev=>[{
+                id:Date.now().toString(),name:name.trim(),price:parseFloat(price)||0,currency,
+                target:selT,category:selC,imageId:img||null,bought:false
+            },...prev]);
+        }
+
+        setName("");
+        setPrice("");
+        setImg(null);
+        setImageUrl(null);
+    };
+
+    const startEdit=item=>{
+        setEditingId(item.id);
+        setName(item.name);
+        setPrice(String(item.price));
+        setCurrency(item.currency);
+        setImg(item.imageId||null);
+        setImageUrl(item.imageUrl||null);
+        setSelT(item.target);
+        setSelC(item.category);
+        scrollRef.current?.scrollTo({top:0,behavior:'smooth'});
+    };
+
+    const deleteItem=async item=>{
+        const confirmed=window.confirm(`確定要刪除「${item.name}」嗎？\n\n刪除後商品和照片都會被移除。`);
+        if(!confirmed)return;
+        await deleteImageFromDB(item.imageId);
+        setItems(prev=>prev.filter(i=>i.id!==item.id));
+        if(editingId===item.id){
+            setEditingId(null);setName("");setPrice("");setImg(null);setImageUrl(null);
+        }
+    };
+
+    const TagManager=({title,list,setList})=>{
+        const [val,setVal]=useState("");
+        return <div className="space-y-4">
+            <p className="text-[10px] font-black opacity-30 tracking-[.3em] uppercase pl-1">{title}</p>
+            <div className="flex flex-wrap gap-2">{list.map(tag=><div key={tag} className="flex items-center bg-white/10 px-4 py-2 rounded-2xl gap-2">
+                <span className="text-xs font-bold">{tag}</span>
+                <div onTouchStart={()=>setList(list.filter(l=>l!==tag))} className="opacity-30 p-1"><Icons.X size={12}/></div>
+            </div>)}</div>
+            <div className="relative flex items-center">
+                <input value={val} onChange={e=>setVal(e.target.value)} className="w-full bg-white/5 rounded-2xl px-5 py-4 text-sm font-bold pr-16 border border-white/10" placeholder="新增..."/>
+                <div onTouchStart={()=>{if(val.trim()){setList([...list,val.trim()]);setVal("")}}} className="absolute right-2 w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center cursor-pointer"><Icons.Plus size={18}/></div>
+            </div>
+        </div>
+    };
+
+    return <div ref={scrollRef} className="scroll-container no-scrollbar">
+        {!showTags&&items.length===0&&view==='list'&&<div className="empty-watermark">HI(˶˙๏˙˶)</div>}
+
+        <div className="w-full max-w-[90%] mx-auto pb-20">
+            <header className="flex justify-between items-center pt-12 mb-4">
+                <h1 className="text-xl font-[900] tracking-tighter">My購了沒 (˶˙๏˙˶)b</h1>
+                <button onTouchStart={()=>setShowTags(true)} className="w-12 h-12 nav-glass rounded-2xl flex items-center justify-center"><Icons.Tag/></button>
+            </header>
+
+            <div className="sticky-summary">
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div className="text-center p-2"><p className="text-[10px] opacity-40 font-black tracking-[.2em] uppercase mb-1">已花費</p><p className="text-2xl font-num text-white tracking-tighter"><span className="text-[10px] opacity-30 mr-1">NT$</span>{Math.round(stats.bought).toLocaleString()}</p></div>
+                    <div className="text-center p-2 border-l border-white/5"><p className="text-[10px] opacity-40 font-black tracking-[.2em] uppercase mb-1">預定花費</p><p className="text-2xl font-num text-white tracking-tighter opacity-80"><span className="text-[10px] opacity-30 mr-1">NT$</span>{Math.round(stats.planned).toLocaleString()}</p></div>
+                </div>
+                <div className="flex justify-center gap-6 opacity-30 text-[9px] font-num font-black uppercase tracking-[.2em]"><span>JPY ➔ {rates.JPY.toFixed(4)}</span><span>KRW ➔ {rates.KRW.toFixed(4)}</span></div>
+            </div>
+
+            {isMigrating&&<div className="mt-4 p-4 rounded-2xl bg-white/10 text-center text-[10px] font-bold tracking-widest">正在整理舊照片，請稍等一下…</div>}
+
+            {view==='list'?<div className="space-y-8 mt-6 pb-24">
+                <section className="nav-glass rounded-[2.5rem] p-6 space-y-6">
+                    <input value={name} onChange={e=>setName(e.target.value)} className="w-full text-xl font-[900] placeholder:opacity-20" placeholder="要買什麼好咧？"/>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div className="flex items-center gap-3 flex-1"><span className="text-[9px] font-num opacity-30 tracking-widest uppercase">PRICE</span><input type="number" value={price} onChange={e=>setPrice(e.target.value)} className="w-full text-2xl font-num" placeholder="0"/></div>
+                        <select value={currency} onChange={e=>setCurrency(e.target.value)} className="w-20 text-right text-sm font-black text-white"><option value="TWD">TWD</option><option value="JPY">JPY</option><option value="KRW">KRW</option></select>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">{targets.map(t=><button key={t} onTouchStart={()=>setSelT(t)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all flex-none uppercase ${selT===t?'bg-white text-black':'bg-white/5 text-white/30'}`}>{t}</button>)}</div>
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">{categories.map(c=><button key={c} onTouchStart={()=>setSelC(c)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all flex-none uppercase ${selC===c?'bg-white/20 text-white':'bg-white/5 text-white/20'}`}>{c}</button>)}</div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button onTouchStart={()=>document.getElementById('cam-btn').click()} className={`w-14 h-14 flex items-center justify-center rounded-2xl border border-white/10 ${img?'bg-blue-500/20 text-blue-400 border-blue-500/50':'bg-white/5 opacity-30'}`}><Icons.Camera size={24}/></button>
+                        <button onTouchStart={handleSubmit} className="flex-1 bg-white text-black text-[11px] font-black tracking-[.4em] uppercase rounded-2xl">{editingId?'更新項目':'加入清單'}</button>
+                        <input type="file" id="cam-btn" className="hidden" accept="image/*" onChange={e=>{const file=e.target.files?.[0];if(file)handleImageUpload(file);e.target.value=''}}/>
+                    </div>
+                    {imageUrl&&<div className="flex items-center gap-3 text-[10px] opacity-50"><img src={imageUrl} className="w-12 h-12 rounded-xl object-cover"/><span>{editingId?'目前照片':'已選擇照片'}</span></div>}
+                </section>
+
+                <div className="space-y-6">
+                    {itemsWithImages.map(item=><div key={item.id} className={`flex flex-col gap-3 p-1 rounded-3xl transition-all ${item.bought?'opacity-25 grayscale':''}`}>
+                        <div className="flex items-center gap-4">
+                            <div className="w-20 h-20 flex-none rounded-2xl overflow-hidden bg-white/5 border border-white/10 relative">
+                                {item.imageUrl?<img src={item.imageUrl} className="w-full h-full object-cover"/>:<div className="w-full h-full flex items-center justify-center opacity-10"><Icons.Camera/></div>}
+                                {item.bought&&<div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Icons.Check/></div>}
+                            </div>
+                            <div className="flex-1 min-w-0 pr-2">
+                                <div className="flex gap-1.5 mb-2">
+                                    <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${item.target==='自己'?'tag-pink':item.target==='家人'?'tag-blue':item.target==='朋友'?'tag-purple':'tag-gray'}`}>{item.target}</span>
+                                    <span className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-white/10 text-white/60 uppercase">{item.category}</span>
+                                </div>
+                                <h3 className="font-bold text-sm truncate mb-1">{item.name}</h3>
+                                <p className="text-xl font-num font-black text-white"><span className="text-[10px] opacity-30 mr-1.5 font-bold">{item.currency}</span>{Number(item.price).toLocaleString()}</p>
+                            </div>
+                            <button onTouchStart={()=>setItems(prev=>prev.map(i=>i.id===item.id?{...i,bought:!i.bought}:i))} className={`w-12 h-12 rounded-full flex-none flex items-center justify-center ${item.bought?'bg-white text-black':'border-2 border-white/10 text-white/20'}`}><Icons.Check/></button>
+                        </div>
+                        {!item.bought&&<div className="flex justify-end gap-6 px-4">
+                            <button onTouchStart={()=>startEdit(item)} className="flex items-center gap-1.5 text-[10px] font-black text-blue-400 uppercase tracking-widest"><Icons.Edit/> 編輯</button>
+                            <button onTouchStart={()=>deleteItem(item)} className="flex items-center gap-1.5 text-[10px] font-black text-red-500 uppercase tracking-widest"><Icons.Trash/> 刪除</button>
+                        </div>}
+                    </div>)}
+                </div>
+            </div>:<div className="space-y-16 mt-10 pb-24">
+                {stats.byTarget.length>0&&<div className="p-8 border border-white/5 rounded-[2.5rem]"><p className="text-[10px] font-black opacity-30 tracking-[.3em] uppercase mb-8 text-center">依對象統計 (Who)</p><PieChart data={stats.byTarget}/></div>}
+                {stats.byCategory.length>0&&<div className="p-8 border border-white/5 rounded-[2.5rem]"><p className="text-[10px] font-black opacity-30 tracking-[.3em] uppercase mb-8 text-center">依類別統計 (What)</p><PieChart data={stats.byCategory}/></div>}
+                {items.length===0&&<div className="py-20 text-center opacity-20 text-[10px] font-black tracking-widest">【尚未有資料(˶˙๏˙˶)】</div>}
+            </div>}
+        </div>
+
+        {!isKeyboardVisible&&<nav className="fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-12 px-10 py-5 rounded-[2.5rem] nav-glass z-[80]">
+            <div onTouchStart={()=>{setView('list');setShowTags(false)}} className={`p-1 ${view==='list'&&!showTags?'opacity-100 scale-125':'opacity-20'}`}><Icons.List/></div>
+            <div onTouchStart={()=>{setView('stats');setShowTags(false)}} className={`p-1 ${view==='stats'&&!showTags?'opacity-100 scale-125':'opacity-20'}`}><Icons.Stats/></div>
+        </nav>}
+
+        {showTags&&<div className="fixed inset-0 z-[100] bg-black p-6 overflow-y-auto no-scrollbar">
+            <div className="w-full max-w-[90%] mx-auto py-10">
+                <div className="flex justify-between items-center mb-16"><h2 className="text-3xl font-[900] tracking-tight">Tags</h2><button onTouchStart={()=>setShowTags(false)} className="px-8 py-3 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-widest">完成</button></div>
+                <div className="space-y-14">
+                    <TagManager title="對象ㄉ分類 (Who)" list={targets} setList={setTargets}/>
+                    <TagManager title="物品ㄉ分類 (What)" list={categories} setList={setCategories}/>
+                    <div className="pt-10 pb-10">
+                        <p className="text-[10px] font-black text-red-500 tracking-[.3em] uppercase mb-4">危險區域.ᐟ‪.ᐟ</p>
+                        <div className="border border-red-500/20 rounded-[2rem] p-8 text-center space-y-4">
+                            <p className="text-[11px] text-red-500/70 font-bold leading-relaxed">此操作將清空所有購物清單項目及照片。</p>
+                            <button onTouchStart={async()=>{
+                                const confirmed=window.confirm('確定要清空所有購物清單嗎？\\n\\n商品與照片都會被刪除，無法復原。');
+                                if(!confirmed)return;
+                                await clearAllImages();
+                                setItems([]);
+                                setEditingId(null);
+                                setName('');
+                                setPrice('');
+                                setImg(null);
+                                setImageUrl(null);
+                                setShowTags(false);
+                            }} className="w-full py-5 rounded-2xl bg-red-600/10 text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-500/20">RESET ALL ITEMS</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>}
+    </div>
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
 </body>
 </html>
-
