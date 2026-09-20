@@ -196,6 +196,10 @@ const PieChart=({data})=>{
     </div>
 };
 
+const blobToDataURL=blob=>new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(blob)});
+const dataURLToBlob=dataURL=>{const parts=dataURL.split(',');const mime=(parts[0].match(/:(.*?);/)||[])[1]||'image/jpeg';const bin=atob(parts[1]);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime})};
+const getImageBlobFromDB=async id=>{if(!id)return null;const db=await openImageDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE_NAME,'readonly');const req=tx.objectStore(STORE_NAME).get(id);req.onsuccess=()=>{db.close();resolve(req.result||null)};req.onerror=()=>{db.close();reject(req.error)}})};
+
 const App=()=>{
     const [view,setView]=useState('list');
     const [items,setItems]=useState([]);
@@ -213,6 +217,7 @@ const App=()=>{
     const [selC,setSelC]=useState("藥妝");
     const [targets,setTargets]=useState(["自己","家人","朋友"]);
     const [categories,setCategories]=useState(["藥妝","服飾","零食","電器"]);
+    const [locations,setLocations]=useState([]);
     const [rates,setRates]=useState({JPY:.21,KRW:.024});
     const [isKeyboardVisible,setIsKeyboardVisible]=useState(false);
     const [isMigrating,setIsMigrating]=useState(false);
@@ -248,6 +253,7 @@ const App=()=>{
                     const parsed=JSON.parse(savedTags);
                     if(parsed.t)setTargets(parsed.t);
                     if(parsed.c)setCategories(parsed.c);
+                    if(parsed.l)setLocations(parsed.l);
                 }
 
                 if(!savedItems){
@@ -257,6 +263,14 @@ const App=()=>{
 
                 let parsedItems=JSON.parse(savedItems);
                 if(!Array.isArray(parsedItems))parsedItems=[];
+
+                // 舊商品曾經自由輸入的購買地點，自動加入 Tags
+                const oldLocations=[...new Set(
+                    parsedItems.map(item=>item.location).filter(Boolean)
+                )];
+                if(oldLocations.length){
+                    setLocations(prev=>[...new Set([...prev,...oldLocations])]);
+                }
 
                 const hasOld=parsedItems.some(item=>item.image&&typeof item.image==='string'&&item.image.startsWith('data:image'));
 
@@ -306,12 +320,12 @@ const App=()=>{
                 target:item.target,category:item.category,location:item.location||"",note:item.note||"",imageId:item.imageId||null,bought:!!item.bought
             }));
             localStorage.setItem('mybuy_v13_items',JSON.stringify(lightItems));
-            localStorage.setItem('mybuy_v13_tags',JSON.stringify({t:targets,c:categories}));
+            localStorage.setItem('mybuy_v13_tags',JSON.stringify({t:targets,c:categories,l:locations}));
         }catch(e){
             console.error('localStorage 儲存失敗',e);
             if(e.name==='QuotaExceededError')alert('儲存空間不足。照片已改用新的儲存方式，但舊資料可能仍佔用瀏覽器空間。');
         }
-    },[items,targets,categories,migrationDone]);
+    },[items,targets,categories,locations,migrationDone]);
 
     /* 載入 IndexedDB 照片 */
     useEffect(()=>{
@@ -394,7 +408,7 @@ const App=()=>{
     };
 
     const deleteItem=async item=>{
-        const confirmed=window.confirm(`確定要刪除「${item.name}」嗎？\n\n啊我就怕你是不小心按到`);
+        const confirmed=window.confirm(`確定要刪除「${item.name}」嗎？\n啊我就怕你不小心按到啊`);
         if(!confirmed)return;
         await deleteImageFromDB(item.imageId);
         setItems(prev=>prev.filter(i=>i.id!==item.id));
@@ -402,6 +416,9 @@ const App=()=>{
             setEditingId(null);setName("");setPrice("");setImg(null);setImageUrl(null);
         }
     };
+
+    const exportBackup=async()=>{try{const imageMap={};for(const item of items){if(item.imageId){const blob=await getImageBlobFromDB(item.imageId);if(blob)imageMap[item.imageId]=await blobToDataURL(blob)}}const backup={version:2,app:'My購了沒',exportedAt:new Date().toISOString(),items,targets,categories,locations,rates,images:imageMap};const blob=new Blob([JSON.stringify(backup)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`My購了沒_備份_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){console.error(e);alert('匯出失敗，請再試一次。')}};
+    const importBackup=async file=>{if(!file)return;try{const backup=JSON.parse(await file.text());if(!backup||!Array.isArray(backup.items))throw new Error('invalid');if(!window.confirm(`確定要匯入這份備份嗎？\n\n備份中的 ${backup.items.length} 筆商品會加入目前資料。相同 ID 的商品會以備份內容覆蓋。`))return;const imported=[];for(const raw of backup.items){let item={...raw};if(item.imageId&&backup.images?.[item.imageId])item.imageId=await saveImageToDB(dataURLToBlob(backup.images[item.imageId]));else item.imageId=null;imported.push({...item,location:item.location||'',note:item.note||'',bought:!!item.bought})}const byId=new Map(items.map(i=>[i.id,i]));imported.forEach(i=>byId.set(i.id,i));setItems([...byId.values()]);if(Array.isArray(backup.targets))setTargets(p=>[...new Set([...p,...backup.targets])]);if(Array.isArray(backup.categories))setCategories(p=>[...new Set([...p,...backup.categories])]);if(Array.isArray(backup.locations))setLocations(p=>[...new Set([...p,...backup.locations])]);if(backup.rates)setRates(backup.rates);alert('匯入完成！商品、標籤與照片都已加入。')}catch(e){console.error(e);alert('這不是有效的 My購了沒備份檔。')}};
 
     const TagManager=({title,list,setList})=>{
         const [val,setVal]=useState("");
@@ -444,14 +461,40 @@ const App=()=>{
                         <div className="flex items-center gap-3 flex-1"><span className="text-[9px] font-num opacity-30 tracking-widest uppercase">PRICE</span><input type="number" value={price} onChange={e=>setPrice(e.target.value)} className="w-full text-2xl font-num" placeholder="0"/></div>
                         <select value={currency} onChange={e=>setCurrency(e.target.value)} className="w-20 text-right text-sm font-black text-white"><option value="TWD">TWD</option><option value="JPY">JPY</option><option value="KRW">KRW</option></select>
                     </div>
-                    <div className="grid grid-cols-1 gap-3">
-                        <div className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3 border border-white/5">
-                            <span className="text-[9px] font-black opacity-30 tracking-widest uppercase flex-none">地點</span>
-                            <input value={location} onChange={e=>setLocation(e.target.value)} className="w-full text-sm font-bold" placeholder="在哪裡買？例如：大阪梅田、唐吉訶德"/>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-black opacity-30 tracking-widest uppercase">購買地點</span>
+                                {location&&<button onTouchStart={()=>setLocation("")} className="text-[9px] font-bold opacity-30">清除</button>}
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                                <button
+                                    onTouchStart={()=>setLocation("")}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black flex-none transition-all ${location===""?"bg-white text-black":"bg-white/5 text-white/30"}`}
+                                >
+                                    不指定
+                                </button>
+                                {locations.map(loc=>
+                                    <button
+                                        key={loc}
+                                        onTouchStart={()=>setLocation(loc)}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black flex-none transition-all ${location===loc?"bg-white text-black":"bg-white/5 text-white/30"}`}
+                                    >
+                                        {loc}
+                                    </button>
+                                )}
+                            </div>
                         </div>
+
                         <div className="flex items-start gap-3 bg-white/5 rounded-2xl px-4 py-3 border border-white/5">
                             <span className="text-[9px] font-black opacity-30 tracking-widest uppercase flex-none pt-1">備註</span>
-                            <textarea value={note} onChange={e=>setNote(e.target.value)} rows="2" className="w-full text-sm font-bold resize-none" placeholder="想寫什麼就寫什麼"></textarea>
+                            <textarea
+                                value={note}
+                                onChange={e=>setNote(e.target.value)}
+                                rows="2"
+                                className="w-full text-sm font-bold resize-none"
+                                placeholder="想寫什麼就寫什麼"
+                            ></textarea>
                         </div>
                     </div>
                     <div className="space-y-4">
@@ -509,12 +552,19 @@ const App=()=>{
                 <div className="space-y-14">
                     <TagManager title="對象ㄉ分類 (Who)" list={targets} setList={setTargets}/>
                     <TagManager title="物品ㄉ分類 (What)" list={categories} setList={setCategories}/>
+                    <TagManager title="地點ㄉ分類 (Where)" list={locations} setList={setLocations}/>
+                    <div className="pt-2 space-y-3">
+                        <p className="text-[10px] font-black opacity-30 tracking-[.3em] uppercase pl-1">資料備份與轉移</p>
+                        <button onTouchStart={exportBackup} className="w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-[10px] font-black tracking-widest">📤 匯出全部資料</button>
+                        <label className="block w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-center text-[10px] font-black tracking-widest">📥 匯入資料<input type="file" accept="application/json,.json" className="hidden" onChange={e=>{importBackup(e.target.files?.[0]);e.target.value='';}}/></label>
+                        <p className="text-[9px] opacity-30 leading-relaxed px-2">以此功能紀念王老師於2026.09.20在LINE的瀏覽器編輯清單</p>
+                    </div>
                     <div className="pt-10 pb-10">
                         <p className="text-[10px] font-black text-red-500 tracking-[.3em] uppercase mb-4">危險區域.ᐟ‪.ᐟ</p>
                         <div className="border border-red-500/20 rounded-[2rem] p-8 text-center space-y-4">
                             <p className="text-[11px] text-red-500/70 font-bold leading-relaxed">此操作將清空所有購物清單項目及照片。</p>
                             <button onTouchStart={async()=>{
-                                const confirmed=window.confirm('確定要清空所有購物清單嗎？\\n\\n我再ven一次，商品與照片都會被刪除，你確定ㄇ');
+                                const confirmed=window.confirm('確定要清空所有購物清單嗎？\\n啊我就怕你會按錯');
                                 if(!confirmed)return;
                                 await clearAllImages();
                                 setItems([]);
