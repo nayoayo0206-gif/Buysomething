@@ -408,7 +408,7 @@ const App=()=>{
     };
 
     const deleteItem=async item=>{
-        const confirmed=window.confirm(`確定要刪除「${item.name}」嗎？\n啊我就怕你不小心按到啊`);
+        const confirmed=window.confirm(`確定要刪除「${item.name}」嗎？\n\n刪除後商品和照片都會被移除。`);
         if(!confirmed)return;
         await deleteImageFromDB(item.imageId);
         setItems(prev=>prev.filter(i=>i.id!==item.id));
@@ -417,8 +417,80 @@ const App=()=>{
         }
     };
 
-    const exportBackup=async()=>{try{const imageMap={};for(const item of items){if(item.imageId){const blob=await getImageBlobFromDB(item.imageId);if(blob)imageMap[item.imageId]=await blobToDataURL(blob)}}const backup={version:2,app:'My購了沒',exportedAt:new Date().toISOString(),items,targets,categories,locations,rates,images:imageMap};const blob=new Blob([JSON.stringify(backup)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`My購了沒_備份_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){console.error(e);alert('匯出失敗，請再試一次。')}};
-    const importBackup=async file=>{if(!file)return;try{const backup=JSON.parse(await file.text());if(!backup||!Array.isArray(backup.items))throw new Error('invalid');if(!window.confirm(`確定要匯入這份備份嗎？\n\n備份中的 ${backup.items.length} 筆商品會加入目前資料。相同 ID 的商品會以備份內容覆蓋。`))return;const imported=[];for(const raw of backup.items){let item={...raw};if(item.imageId&&backup.images?.[item.imageId])item.imageId=await saveImageToDB(dataURLToBlob(backup.images[item.imageId]));else item.imageId=null;imported.push({...item,location:item.location||'',note:item.note||'',bought:!!item.bought})}const byId=new Map(items.map(i=>[i.id,i]));imported.forEach(i=>byId.set(i.id,i));setItems([...byId.values()]);if(Array.isArray(backup.targets))setTargets(p=>[...new Set([...p,...backup.targets])]);if(Array.isArray(backup.categories))setCategories(p=>[...new Set([...p,...backup.categories])]);if(Array.isArray(backup.locations))setLocations(p=>[...new Set([...p,...backup.locations])]);if(backup.rates)setRates(backup.rates);alert('匯入完成！商品、標籤與照片都已加入。')}catch(e){console.error(e);alert('這不是有效的 My購了沒備份檔。')}};
+    const buildBackup=async()=>{
+        const imageMap={};
+        for(const item of items){
+            if(item.imageId){
+                const blob=await getImageBlobFromDB(item.imageId);
+                if(blob)imageMap[item.imageId]=await blobToDataURL(blob);
+            }
+        }
+        return {version:3,app:'My購了沒',exportedAt:new Date().toISOString(),items,targets,categories,locations,rates,images:imageMap};
+    };
+
+    const exportBackup=async()=>{
+        try{
+            const backup=await buildBackup();
+            const code=btoa(unescape(encodeURIComponent(JSON.stringify(backup))));
+            try{await navigator.clipboard.writeText(code)}
+            catch(e){
+                const ta=document.createElement('textarea');
+                ta.value=code;ta.style.position='fixed';ta.style.left='-9999px';
+                document.body.appendChild(ta);ta.focus();ta.select();
+                document.execCommand('copy');ta.remove();
+            }
+            alert('備份碼已複製！\n\n請把備份碼保存到你自己能在 Chrome 取得的地方，再到 Chrome 使用「貼上備份碼」。\n\n照片也會包含在備份裡。');
+        }catch(e){console.error(e);alert('備份失敗，請再試一次。')}
+    };
+
+    const importBackupCode=async()=>{
+        const code=window.prompt('請貼上從 LINE 瀏覽器複製的「備份碼」：');
+        if(!code)return;
+        try{
+            const backup=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+            if(!backup||backup.app!=='My購了沒'||!Array.isArray(backup.items))throw new Error('invalid');
+            if(!window.confirm(`確定要匯入這份備份嗎？\n\n備份中的 ${backup.items.length} 筆商品會加入目前資料。相同 ID 的商品會以備份內容覆蓋。`))return;
+            const imported=[];
+            for(const raw of backup.items){
+                const item={...raw};
+                if(item.imageId&&backup.images?.[item.imageId])item.imageId=await saveImageToDB(dataURLToBlob(backup.images[item.imageId]));
+                else item.imageId=null;
+                imported.push({...item,location:item.location||'',note:item.note||'',bought:!!item.bought});
+            }
+            const byId=new Map(items.map(i=>[i.id,i]));
+            imported.forEach(i=>byId.set(i.id,i));
+            setItems([...byId.values()]);
+            if(Array.isArray(backup.targets))setTargets(p=>[...new Set([...p,...backup.targets])]);
+            if(Array.isArray(backup.categories))setCategories(p=>[...new Set([...p,...backup.categories])]);
+            if(Array.isArray(backup.locations))setLocations(p=>[...new Set([...p,...backup.locations])]);
+            if(backup.rates)setRates(backup.rates);
+            alert('匯入完成！商品、標籤、購買地點、備註與照片都已加入。');
+        }catch(e){console.error(e);alert('備份碼無效或不完整，請重新複製一次。')}
+    };
+
+    const importBackup=async file=>{
+        if(!file)return;
+        try{
+            const backup=JSON.parse(await file.text());
+            if(!backup||!Array.isArray(backup.items))throw new Error('invalid');
+            if(!window.confirm(`確定要匯入這份備份嗎？\n\n備份中的 ${backup.items.length} 筆商品會加入目前資料。相同 ID 的商品會以備份內容覆蓋。`))return;
+            const imported=[];
+            for(const raw of backup.items){
+                const item={...raw};
+                if(item.imageId&&backup.images?.[item.imageId])item.imageId=await saveImageToDB(dataURLToBlob(backup.images[item.imageId]));
+                else item.imageId=null;
+                imported.push({...item,location:item.location||'',note:item.note||'',bought:!!item.bought});
+            }
+            const byId=new Map(items.map(i=>[i.id,i]));
+            imported.forEach(i=>byId.set(i.id,i));
+            setItems([...byId.values()]);
+            if(Array.isArray(backup.targets))setTargets(p=>[...new Set([...p,...backup.targets])]);
+            if(Array.isArray(backup.categories))setCategories(p=>[...new Set([...p,...backup.categories])]);
+            if(Array.isArray(backup.locations))setLocations(p=>[...new Set([...p,...backup.locations])]);
+            if(backup.rates)setRates(backup.rates);
+            alert('匯入完成！');
+        }catch(e){console.error(e);alert('這不是有效的 My購了沒備份檔。')}
+    };
 
     const TagManager=({title,list,setList})=>{
         const [val,setVal]=useState("");
@@ -493,7 +565,7 @@ const App=()=>{
                                 onChange={e=>setNote(e.target.value)}
                                 rows="2"
                                 className="w-full text-sm font-bold resize-none"
-                                placeholder="想寫什麼就寫什麼啦.ᐟ.ᐟ"
+                                placeholder="想寫什麼就寫什麼"
                             ></textarea>
                         </div>
                     </div>
@@ -552,19 +624,20 @@ const App=()=>{
                 <div className="space-y-14">
                     <TagManager title="對象ㄉ分類 (Who)" list={targets} setList={setTargets}/>
                     <TagManager title="物品ㄉ分類 (What)" list={categories} setList={setCategories}/>
-                    <TagManager title="地點ㄉ分類 (Where)" list={locations} setList={setLocations}/>
+                    <TagManager title="購買地點 (Where)" list={locations} setList={setLocations}/>
                     <div className="pt-2 space-y-3">
                         <p className="text-[10px] font-black opacity-30 tracking-[.3em] uppercase pl-1">資料備份與轉移</p>
-                        <button onTouchStart={exportBackup} className="w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-[10px] font-black tracking-widest">📤 匯出全部資料</button>
-                        <label className="block w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-center text-[10px] font-black tracking-widest">📥 匯入資料<input type="file" accept="application/json,.json" className="hidden" onChange={e=>{importBackup(e.target.files?.[0]);e.target.value='';}}/></label>
-                        <p className="text-[9px] opacity-30 leading-relaxed px-2">以此功能紀念王老師於2026.09.20在LINE的瀏覽器編輯清單然後轉不出來(´⌯  ̫⌯`)</p>
+                        <button onTouchStart={exportBackup} className="w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-[10px] font-black tracking-widest">📋 複製備份碼（LINE用）</button>
+                        <button onTouchStart={importBackupCode} className="w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-[10px] font-black tracking-widest">📥 貼上備份碼（Chrome用）</button>
+                        <label className="block w-full py-4 rounded-2xl bg-white/10 border border-white/10 text-center text-[10px] font-black tracking-widest">📂 從JSON檔匯入<input type="file" accept="application/json,.json" className="hidden" onChange={e=>{importBackup(e.target.files?.[0]);e.target.value='';}}/></label>
+                        <p className="text-[9px] opacity-30 leading-relaxed px-2">LINE 瀏覽器不支援下載檔案，所以用「備份碼」搬資料。照片、商品、標籤、購買地點與備註都會一起備份。</p>
                     </div>
                     <div className="pt-10 pb-10">
                         <p className="text-[10px] font-black text-red-500 tracking-[.3em] uppercase mb-4">危險區域.ᐟ‪.ᐟ</p>
                         <div className="border border-red-500/20 rounded-[2rem] p-8 text-center space-y-4">
                             <p className="text-[11px] text-red-500/70 font-bold leading-relaxed">此操作將清空所有購物清單項目及照片。</p>
                             <button onTouchStart={async()=>{
-                                const confirmed=window.confirm('我再ven一次，按下去會清空所有ㄉ購物清單，你確定ㄇ');
+                                const confirmed=window.confirm('確定要清空所有購物清單嗎？\\n\\n商品與照片都會被刪除，無法復原。');
                                 if(!confirmed)return;
                                 await clearAllImages();
                                 setItems([]);
