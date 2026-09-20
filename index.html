@@ -564,7 +564,7 @@ const App=()=>{
                         <div className="border border-red-500/20 rounded-[2rem] p-8 text-center space-y-4">
                             <p className="text-[11px] text-red-500/70 font-bold leading-relaxed">此操作將清空所有購物清單項目及照片。</p>
                             <button onTouchStart={async()=>{
-                                const confirmed=window.confirm('確定要清空所有購物清單嗎？\n我再ven一次，按下去會清空所有ㄉ購物清單，你確定ㄇ');
+                                const confirmed=window.confirm('我再ven一次，按下去會清空所有ㄉ購物清單，你確定ㄇ');
                                 if(!confirmed)return;
                                 await clearAllImages();
                                 setItems([]);
